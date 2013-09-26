@@ -49,6 +49,7 @@ struct _PanelIndicatorAccessibleClass
 
 GType      panel_indicator_accessible_get_type (void);
 AtkObject *panel_indicator_accessible_new      (IndicatorObject *indicator);
+IndicatorObject *panel_indicator_accessible_get_indicator (PanelIndicatorAccessible *pia);
 
 G_END_DECLS
 

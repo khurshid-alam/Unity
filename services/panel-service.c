@@ -92,6 +92,7 @@ enum
   ENTRY_ACTIVATE_REQUEST,
   ENTRY_SHOW_NOW_CHANGED,
   GEOMETRIES_CHANGED,
+  INDICATOR_REMOVED,
   INDICATORS_CLEARED,
 
   LAST_SIGNAL
@@ -269,6 +270,14 @@ panel_service_class_init (PanelServiceClass *klass)
                   0,
                   NULL, NULL, NULL,
                   G_TYPE_NONE, 2, G_TYPE_STRING, G_TYPE_BOOLEAN);
+
+  _service_signals[INDICATOR_REMOVED] =
+    g_signal_new ("indicator-removed",
+                  G_OBJECT_CLASS_TYPE (obj_class),
+                  G_SIGNAL_RUN_LAST,
+                  0,
+                  NULL, NULL, NULL,
+                  G_TYPE_NONE, 1, G_TYPE_OBJECT);
 
   _service_signals[INDICATORS_CLEARED] =
     g_signal_new ("indicators-cleared",
@@ -688,11 +697,16 @@ panel_service_actually_remove_indicator (PanelService *self, IndicatorObject *in
 
   self->priv->indicators = g_slist_remove (self->priv->indicators, indicator);
 
+  indicator_object_set_visible (indicator, FALSE);
+
+  g_signal_emit (self, _service_signals[INDICATOR_REMOVED], 0, indicator);
+
   if (g_object_is_floating (G_OBJECT (indicator)))
     {
       g_object_ref_sink (G_OBJECT (indicator));
     }
 
+  g_debug ("%s unreffing indicator \"%s\" (refcount is %u)", G_STRFUNC, (gchar *)g_object_get_data (G_OBJECT (indicator), "id"), G_OBJECT(indicator)->ref_count);
   g_object_unref (G_OBJECT (indicator));
 }
 
@@ -817,7 +831,6 @@ panel_service_add_indicator (PanelService *self, IndicatorObject *indicator)
   g_return_if_fail (PANEL_IS_SERVICE (self));
   g_return_if_fail (INDICATOR_IS_OBJECT (indicator));
 
-  g_object_ref (indicator);
   load_indicator (self, indicator, NULL);
 }
 
@@ -1116,6 +1129,7 @@ load_indicator (PanelService *self, IndicatorObject *object, const gchar *_name)
     }
   g_list_free (entries);
 
+  g_debug ("%s loaded indicator \"%s\"", G_STRFUNC, name);
   g_free (name);
 }
 
@@ -1142,7 +1156,6 @@ load_indicators (PanelService *self)
         continue;
 
       path = g_build_filename (INDICATORDIR, name, NULL);
-      g_debug ("Loading: %s", path);
 
       object = indicator_object_new_from_file (path);
       if (object == NULL)

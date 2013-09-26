@@ -384,3 +384,9 @@ panel_indicator_accessible_ref_state_set (AtkObject *accessible)
 
   return state_set;
 }
+
+IndicatorObject *
+panel_indicator_accessible_get_indicator (PanelIndicatorAccessible *pia)
+{
+  return pia->priv->indicator;
+}

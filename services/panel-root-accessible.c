@@ -89,23 +89,26 @@ panel_root_accessible_new (void)
 }
 
 static void
-on_indicator_removed (gpointer *data, GObject *removed_indicator)
+on_indicator_removed_cb (PanelService *panel_service, IndicatorObject *indicator, AtkObject *child)
 {
-  PanelRootAccessible *root = data[0];
-  AtkObject *child = data[1];
+  AtkObject *parent;
+  PanelRootAccessible *root;
 
+  if (indicator != panel_indicator_accessible_get_indicator (PANEL_INDICATOR_ACCESSIBLE (child)))
+    return;
+
+  parent = atk_object_get_parent (child);
+  root = PANEL_ROOT_ACCESSIBLE (parent);
   g_return_if_fail (PANEL_IS_ROOT_ACCESSIBLE (root));
-  g_return_if_fail (ATK_IS_OBJECT (child));
 
   gint index = g_slist_index (root->priv->a11y_children, child);
   if (index >= 0)
     {
       root->priv->a11y_children = g_slist_remove (root->priv->a11y_children, child);
       g_signal_emit_by_name (root, "children-changed::remove", index, child);
+      g_signal_handlers_disconnect_by_func (panel_service, on_indicator_removed_cb, child);
       g_object_unref (child);
     }
-
-  g_free (data);
 }
 
 /* Implementation of AtkObject methods */
@@ -133,17 +136,9 @@ panel_root_accessible_initialize (AtkObject *accessible, gpointer data)
       indicator = panel_service_get_indicator_nth (root->priv->service, i);
       if (INDICATOR_IS_OBJECT (indicator))
         {
-          AtkObject *child;
-          gpointer *weak_data;
+          AtkObject *child = panel_indicator_accessible_new (indicator);
 
-          child = panel_indicator_accessible_new (indicator);
-          /* FIXME: use proper signals once we support dynamic adding/removing
-           * of indicators */
-          weak_data = g_new0 (gpointer, 2);
-          weak_data[0] = root;
-          weak_data[1] = child;
-          g_object_weak_ref (G_OBJECT (indicator), 
-              (GWeakNotify) on_indicator_removed, weak_data);
+          g_signal_connect (root->priv->service, "indicator-removed", G_CALLBACK (on_indicator_removed_cb), child);
 
           atk_object_set_parent (child, accessible);
           root->priv->a11y_children = g_slist_append (root->priv->a11y_children, child);
