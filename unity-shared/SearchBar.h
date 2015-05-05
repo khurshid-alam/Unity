@@ -100,6 +100,7 @@ private:
 
   bool ShouldBeHighlighted();
   void UpdateSearchBarSize();
+  void UpdateBlinkSpeed();
   void UpdateScale(double scale);
 
   std::unique_ptr<nux::AbstractPaintLayer> bg_layer_;

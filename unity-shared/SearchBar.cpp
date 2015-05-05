@@ -270,6 +270,7 @@ SearchBar::SearchBar(bool show_filter_hint, NUX_FILE_LINE_DECL)
   showing_filters.changed.connect(sigc::mem_fun(this, &SearchBar::OnShowingFiltersChanged));
   scale.changed.connect(sigc::mem_fun(this, &SearchBar::UpdateScale));
   Settings::Instance().font_scaling.changed.connect(sigc::hide(sigc::mem_fun(this, &SearchBar::UpdateSearchBarSize)));
+  Settings::Instance().cursor_blink_speed.changed.connect(sigc::hide(sigc::mem_fun(this, &SearchBar::UpdateBlinkSpeed)));
   can_refine_search.changed.connect([this] (bool can_refine)
   {
     if (show_filter_hint_)
@@ -340,6 +341,12 @@ void SearchBar::UpdateSearchBarSize()
   int search_bar_height = style.GetSearchBarHeight().CP(font_scaling);
   SetMinimumHeight(search_bar_height);
   SetMaximumHeight(search_bar_height);
+}
+
+void SearchBar::UpdateBlinkSpeed()
+{
+  unsigned blink_speed = Settings::Instance().cursor_blink_speed();
+  pango_entry_->SetCursorBlinkSpeed(blink_speed);
 }
 
 void SearchBar::UpdateScale(double scale)

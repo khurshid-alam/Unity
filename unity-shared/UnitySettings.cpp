@@ -53,9 +53,10 @@ const std::string APP_USE_MAX_SCALE = "app-fallback-to-maximum-scale-factor";
 const std::string UBUNTU_UI_SETTINGS = "com.ubuntu.user-interface";
 const std::string SCALE_FACTOR = "scale-factor";
 
-const std::string GNOME_UI_SETTINGS = "org.gnome.desktop.interface";
-const std::string GNOME_FONT_NAME = "font-name";
-const std::string GNOME_CURSOR_SIZE = "cursor-size";
+const std::string GNOME_UI_SETTINGS  = "org.gnome.desktop.interface";
+const std::string GNOME_FONT_NAME    = "font-name";
+const std::string GNOME_CURSOR_SIZE  = "cursor-size";
+const std::string GNOME_CURSOR_BLINK = "cursor-blink-time";
 const std::string GNOME_SCALE_FACTOR = "scaling-factor";
 const std::string GNOME_TEXT_SCALE_FACTOR = "text-scaling-factor";
 
@@ -136,6 +137,10 @@ public:
       }
     });
 
+    signals_.Add<void, GSettings*, const gchar*>(gnome_ui_settings_, "changed::" + GNOME_CURSOR_BLINK, [this] (GSettings*, const gchar* t) {
+      UpdateCursorBlinkSpeed();
+    });
+
     signals_.Add<void, GSettings*, const gchar*>(lim_settings_, "changed", [this] (GSettings*, const gchar*) {
       UpdateLimSetting();
     });
@@ -143,6 +148,7 @@ public:
     UScreen::GetDefault()->changed.connect(sigc::hide(sigc::hide(sigc::mem_fun(this, &Impl::UpdateDPI))));
 
     // The order is important here, DPI is the last thing to be updated
+    UpdateCursorBlinkSpeed();
     UpdateLimSetting();
     UpdateTextScaleFactor();
     UpdateCursorScaleFactor();
@@ -182,6 +188,11 @@ public:
   void CacheDoubleClickActivate()
   {
     cached_double_click_activate_ = g_settings_get_boolean(usettings_, DOUBLE_CLICK_ACTIVATE.c_str());
+  }
+
+  void UpdateCursorBlinkSpeed()
+  {
+    parent_->cursor_blink_speed = g_settings_get_int(gnome_ui_settings_, GNOME_CURSOR_BLINK.c_str());
   }
 
   void UpdateLimSetting()
