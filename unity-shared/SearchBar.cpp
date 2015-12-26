@@ -48,6 +48,7 @@ namespace
 const double DEFAULT_SCALE = 1.0;
 const float DEFAULT_ICON_OPACITY = 1.0f;
 const int DEFAULT_LIVE_SEARCH_TIMEOUT = 40;
+const int MAX_LIVE_SEARCH_TIMEOUT = 250;
 const int SPINNER_TIMEOUT = 100;
 const int CORNER_RADIUS = 5;
 
@@ -357,10 +358,20 @@ void SearchBar::OnSearchHintChanged()
 
 void SearchBar::OnSearchChanged(nux::TextEntry* text_entry)
 {
-  // We don't want to set a new search string on every new character, so we add a sma
+  // We don't want to set a new search string on every new character, so we add a
   // timeout to see if the user is typing a sentence. If more characters are added, we
-  // keep restarting the timeout unti the user has actuay paused.
-  live_search_timeout_.reset(new glib::Timeout(live_search_wait()));
+  // keep restarting the timeout until the user has actuay paused.
+  auto search_wait = DEFAULT_LIVE_SEARCH_TIMEOUT;
+  const std::string& search_text = pango_entry_->GetText();
+  auto search_text_len = search_text.size();
+
+  if (search_text_len > 0)
+  {
+    search_wait = MAX_LIVE_SEARCH_TIMEOUT / search_text_len;
+    search_wait = std::max(search_wait, DEFAULT_LIVE_SEARCH_TIMEOUT);
+  }
+
+  live_search_timeout_.reset(new glib::Timeout(search_wait));
   live_search_timeout_->Run(sigc::mem_fun(this, &SearchBar::OnLiveSearchTimeout));
 
   // Don't animate the spinner immediately, the searches are fast and
@@ -368,14 +379,14 @@ void SearchBar::OnSearchChanged(nux::TextEntry* text_entry)
   start_spinner_timeout_.reset(new glib::Timeout(SPINNER_TIMEOUT));
   start_spinner_timeout_->Run(sigc::mem_fun(this, &SearchBar::OnSpinnerStartCb));
 
-  bool is_empty = pango_entry_->im_active() ? false : pango_entry_->GetText() == "";
+  bool is_empty = pango_entry_->im_active() ? false : search_text_len == 0;
   hint_->SetVisible(is_empty);
 
   pango_entry_->QueueDraw();
   hint_->QueueDraw();
   QueueDraw();
 
-  search_changed.emit(pango_entry_->GetText());
+  search_changed.emit(search_text);
 }
 
 bool SearchBar::OnLiveSearchTimeout()
