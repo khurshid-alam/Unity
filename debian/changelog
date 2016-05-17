@@ -23,6 +23,8 @@ unity (7.4.0-0ubuntu1) UNRELEASED; urgency=medium
     overridden CompositeWindow functions get actually called
   * SwitcherController: don't try to get a window from empty selections
     (LP: #1580211)
+  * DashStyle: ensure LazyLoadTexture disconnects from signals on
+    destruction (LP: #1580212)
 
  -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Sun, 15 May 2016 01:00:09 +0200
 
