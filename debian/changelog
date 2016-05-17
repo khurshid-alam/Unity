@@ -26,6 +26,10 @@ unity (7.4.0-0ubuntu1) UNRELEASED; urgency=medium
   * DashStyle: ensure LazyLoadTexture disconnects from signals on
     destruction (LP: #1580212)
 
+  [ handsome_feng ]
+  * Change the x_offset of expo when launcher position changed. (LP:
+    #1562348, LP: #1573897)
+
  -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Sun, 15 May 2016 01:00:09 +0200
 
 unity (7.4.0+16.04.20160415-0ubuntu1) xenial; urgency=medium
