@@ -11,6 +11,8 @@ unity (7.4.0-0ubuntu1) UNRELEASED; urgency=medium
   * GnomeKeyGrabber: do not activate an action if it's a repeated one.
     (LP: #1572241)
   * Properly calculate array indexes to avoid crashes. (LP: #1570843)
+  * Fallback to "background" class in case no background is specified
+    for title bars and top panel. (LP: #1575527)
 
  -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Sun, 15 May 2016 01:00:09 +0200
 
