@@ -16,6 +16,10 @@ unity (7.4.0-0ubuntu1) UNRELEASED; urgency=medium
   * Do not reset the shortcut for icons that have their own shortcut.
     (LP: #1562847)
 
+  [ Marco Trevisan (Treviño) ]
+  * SwitcherView: close the mouse-selected application on middle-click
+    (LP: #1574689)
+
  -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Sun, 15 May 2016 01:00:09 +0200
 
 unity (7.4.0+16.04.20160415-0ubuntu1) xenial; urgency=medium
