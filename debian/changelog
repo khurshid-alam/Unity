@@ -8,6 +8,8 @@ unity (7.4.0-0ubuntu1) UNRELEASED; urgency=medium
     #1553165)
   * Update ExpoLauncherIcon in case the quicklist is used to switch vp.
     (LP: #1525685)
+  * GnomeKeyGrabber: do not activate an action if it's a repeated one.
+    (LP: #1572241)
 
  -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Sun, 15 May 2016 01:00:09 +0200
 
