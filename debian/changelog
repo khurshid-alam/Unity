@@ -21,6 +21,8 @@ unity (7.4.0-0ubuntu1) UNRELEASED; urgency=medium
     (LP: #1574689)
   * UnityScreen, UnityWindow: cleanup a little the code, and ensure
     overridden CompositeWindow functions get actually called
+  * SwitcherController: don't try to get a window from empty selections
+    (LP: #1580211)
 
  -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Sun, 15 May 2016 01:00:09 +0200
 
