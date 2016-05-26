@@ -203,8 +203,7 @@ UnityScreen::UnityScreen(CompScreen* screen)
   , doShellRepaint(false)
   , didShellRepaint(false)
   , allowWindowPaint(false)
-  , _key_nav_mode_requested(false)
-  , _last_output(nullptr)
+  , last_output_(nullptr)
   , force_draw_countdown_(0)
   , firstWindowAboveShell(nullptr)
   , onboard_(nullptr)
@@ -215,12 +214,13 @@ UnityScreen::UnityScreen(CompScreen* screen)
   , first_menu_keypress_time_(0)
   , paint_panel_under_dash_(false)
   , scale_just_activated_(false)
-  , big_tick_(0)
   , screen_introspection_(screen)
   , ignore_redraw_request_(false)
   , dirty_helpers_on_this_frame_(false)
-  , back_buffer_age_(0)
   , is_desktop_active_(false)
+  , key_nav_mode_requested_(false)
+  , big_tick_(0)
+  , back_buffer_age_(0)
 {
   Timer timer;
 #ifndef USE_GLES
@@ -341,7 +341,7 @@ UnityScreen::UnityScreen(CompScreen* screen)
     tick_source_.reset(new na::TickSource);
     animation_controller_.reset(new na::AnimationController(*tick_source_));
 
-     wt->RedrawRequested.connect(sigc::mem_fun(this, &UnityScreen::onRedrawRequested));
+     wt->RedrawRequested.connect(sigc::mem_fun(this, &UnityScreen::OnRedrawRequested));
 
      unity_a11y_init(wt.get());
 
@@ -692,7 +692,7 @@ void UnityScreen::nuxEpilogue()
   /* In some unknown place inside nux drawing we change the viewport without
    * setting it back to the default one, so we need to restore it before allowing
    * compiz to take the scene */
-  auto* o = _last_output;
+  auto* o = last_output_;
   glViewport(o->x(), screen->height() - o->y2(), o->width(), o->height());
 
   glDepthRange(0, 1);
@@ -748,7 +748,7 @@ void UnityScreen::paintPanelShadow(CompRegion const& clip)
   if (WM.IsExpoActive())
     return;
 
-  CompOutput* output = _last_output;
+  CompOutput* output = last_output_;
 
   if (fullscreenRegion.contains(*output))
     return;
@@ -863,7 +863,7 @@ void UnityScreen::DamageBlurUpdateRegion(nux::Geometry const& blur_update)
 
 void UnityScreen::paintDisplay()
 {
-  CompOutput *output = _last_output;
+  CompOutput *output = last_output_;
 
   DrawPanelUnderDash();
 
@@ -990,7 +990,7 @@ void UnityScreen::DrawPanelUnderDash()
 
   auto const& output_dev = screen->currentOutputDev();
 
-  if (_last_output->id() != output_dev.id())
+  if (last_output_->id() != output_dev.id())
     return;
 
   auto graphics_engine = nux::GetGraphicsDisplay()->GetGraphicsEngine();
@@ -1485,7 +1485,7 @@ bool UnityScreen::glPaintOutput(const GLScreenPaintAttrib& attrib,
                    );
 
   allowWindowPaint = true;
-  _last_output = output;
+  last_output_ = output;
   paint_panel_under_dash_ = false;
 
   // CompRegion has no clear() method. So this is the fastest alternative.
@@ -1522,7 +1522,7 @@ void UnityScreen::glPaintTransformedOutput(const GLScreenPaintAttrib& attrib,
    * this output.
    *
    * However, damaging nux has a side effect of notifying compiz
-   * through onRedrawRequested that we need to queue another frame.
+   * through OnRedrawRequested that we need to queue another frame.
    * In most cases that would be desirable, and in the case where
    * we did that in damageCutoff, it would not be a problem as compiz
    * does not queue up new frames for damage that can be processed
@@ -1687,7 +1687,7 @@ void UnityScreen::donePaint()
   wt->ForeignFrameEnded();
 
   if (animation_controller_->HasRunningAnimations())
-    onRedrawRequested();
+    OnRedrawRequested();
 
   for (auto it = ShowdesktopHandler::animating_windows.begin(); it != ShowdesktopHandler::animating_windows.end();)
   {
@@ -1813,7 +1813,7 @@ void UnityScreen::handleEvent(XEvent* event)
       else if (!screen->grabbed() && event->xfocus.mode == NotifyWhileGrabbed)
         wm.OnScreenGrabbed();
 
-      if (_key_nav_mode_requested)
+      if (key_nav_mode_requested_)
       {
         // Close any overlay that is open.
         if (launcher_controller_->IsOverlayOpen())
@@ -1821,7 +1821,7 @@ void UnityScreen::handleEvent(XEvent* event)
           dash_controller_->HideDash();
           hud_controller_->HideHud();
         }
-        _key_nav_mode_requested = false;
+        key_nav_mode_requested_ = false;
         launcher_controller_->KeyNavGrab();
       }
       break;
@@ -2343,7 +2343,7 @@ bool UnityScreen::setKeyboardFocusKeyInitiate(CompAction* action,
   else if (WM.IsExpoActive())
     WM.TerminateExpo();
 
-  _key_nav_mode_requested = true;
+  key_nav_mode_requested_ = true;
   return true;
 }
 
@@ -3542,7 +3542,7 @@ void UnityScreen::InitNuxThread(nux::NThread* thread, void* data)
   LOG_INFO(logger) << "UnityScreen::InitNuxThread: " << timer.ElapsedSeconds() << "s";
 }
 
-void UnityScreen::onRedrawRequested()
+void UnityScreen::OnRedrawRequested()
 {
   if (!ignore_redraw_request_)
     cScreen->damagePending();
@@ -3623,7 +3623,17 @@ void UnityScreen::optionChanged(CompOption* opt, UnityshellOptions::Options num)
 
       int scale_offset = (launcher_options->hide_mode == LAUNCHER_HIDE_NEVER) ? 0 : launcher_controller_->launcher().GetWidth();
       CompOption::Value v(scale_offset);
-      screen->setOptionForPlugin("scale", "x_offset", v);
+      CompOption::Value bv(0);
+      if (Settings::Instance().launcher_position() == LauncherPosition::LEFT)
+      {
+        screen->setOptionForPlugin("scale", "x_offset", v);
+        screen->setOptionForPlugin("scale", "y_bottom_offset", bv);
+      }
+      else
+      {
+        screen->setOptionForPlugin("scale", "x_offset", bv);
+        screen->setOptionForPlugin("scale", "y_bottom_offset", v);
+      }
       break;
     }
     case UnityshellOptions::BacklightMode:
@@ -3834,11 +3844,19 @@ bool UnityScreen::layoutSlotsAndAssignWindows()
     }
 
     auto max_bounds = NuxGeometryFromCompRect(output.workArea());
-    if (launcher_controller_->options()->hide_mode != LAUNCHER_HIDE_NEVER && Settings::Instance().launcher_position() == LauncherPosition::LEFT)
+    if (launcher_controller_->options()->hide_mode != LAUNCHER_HIDE_NEVER)
     {
-      int monitor_width = unity_settings_.LauncherSize(monitor);
-      max_bounds.x += monitor_width;
-      max_bounds.width -= monitor_width;
+      if (Settings::Instance().launcher_position() == LauncherPosition::LEFT)
+      {
+        int monitor_width = unity_settings_.LauncherSize(monitor);
+        max_bounds.x += monitor_width;
+        max_bounds.width -= monitor_width;
+      }
+      else if (Settings::Instance().launcher_position() == LauncherPosition::BOTTOM)
+      {
+        int launcher_size = unity_settings_.LauncherSize(monitor);
+        max_bounds.height -= launcher_size;
+      }
     }
 
     nux::Geometry final_bounds;
@@ -4098,14 +4116,31 @@ void UnityScreen::InitUnityComponents()
       adjustment_x = launcher_size;
     shortcut_controller_->SetAdjustment(adjustment_x, panel_style_.PanelHeight(launcher->monitor));
 
+    CompOption::Value v(launcher_size);
     if (launcher_position == LauncherPosition::LEFT)
     {
-      CompOption::Value v(launcher_size);
       screen->setOptionForPlugin("expo", "x_offset", v);
 
       if (launcher_controller_->options()->hide_mode == LAUNCHER_HIDE_NEVER)
         v.set(0);
 
+      screen->setOptionForPlugin("scale", "x_offset", v);
+
+      v.set(0);
+      screen->setOptionForPlugin("expo", "y_bottom_offset", v);
+      screen->setOptionForPlugin("scale", "y_bottom_offset", v);
+    }
+    else
+    {
+      screen->setOptionForPlugin("expo", "y_bottom_offset", v);
+
+      if (launcher_controller_->options()->hide_mode == LAUNCHER_HIDE_NEVER)
+        v.set(0);
+
+      screen->setOptionForPlugin("scale", "y_bottom_offset", v);
+
+      v.set(0);
+      screen->setOptionForPlugin("expo", "x_offset", v);
       screen->setOptionForPlugin("scale", "x_offset", v);
     }
   };
@@ -4121,6 +4156,10 @@ void UnityScreen::InitUnityComponents()
   };
 
   UScreen::GetDefault()->changed.connect([this, check_launchers_size] (int, std::vector<nux::Geometry> const&) {
+    check_launchers_size();
+  });
+
+  Settings::Instance().launcher_position.changed.connect([this, check_launchers_size] (LauncherPosition const&) {
     check_launchers_size();
   });
 
@@ -4243,6 +4282,7 @@ UnityWindow::UnityWindow(CompWindow* window)
 {
   WindowInterface::setHandler(window);
   GLWindowInterface::setHandler(gWindow);
+  CompositeWindowInterface::setHandler(cWindow);
   ScaleWindowInterface::setHandler(ScaleWindow::get(window));
 
   PluginAdapter::Default().OnLeaveDesktop();
@@ -4608,7 +4648,7 @@ void UnityWindow::paintInnerGlow(nux::Geometry glow_geo, GLMatrix const& matrix,
 void UnityWindow::paintThumbnail(nux::Geometry const& geo, float alpha, float parent_alpha, float scale_ratio, unsigned deco_height, bool selected)
 {
   GLMatrix matrix;
-  matrix.toScreenSpace(uScreen->_last_output, -DEFAULT_Z_CAMERA);
+  matrix.toScreenSpace(uScreen->last_output_, -DEFAULT_Z_CAMERA);
   last_bound = geo;
 
   GLWindowPaintAttrib attrib = gWindow->lastPaintAttrib();
