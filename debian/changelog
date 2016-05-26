@@ -1,4 +1,4 @@
-unity (7.4.0+16.04.20160526-0ubuntu1) UNRELEASED; urgency=medium
+unity (7.4.0+16.04.20160526.1-0ubuntu1) xenial; urgency=medium
 
   [ Marco Trevisan (Treviño) ]
   * Releasing Unity 7.4.0
@@ -30,7 +30,10 @@ unity (7.4.0+16.04.20160526-0ubuntu1) UNRELEASED; urgency=medium
   * Change the x_offset of expo when launcher position changed. (LP:
     #1562348, LP: #1573897)
 
- -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Sun, 15 May 2016 01:00:09 +0200
+  [ CI Train Bot ]
+  * No-change rebuild.
+
+ -- Marco Trevisan (Treviño) <mail@3v1n0.net>  Thu, 26 May 2016 00:03:25 +0000
 
 unity (7.4.0+16.04.20160415-0ubuntu1) xenial; urgency=medium
 
