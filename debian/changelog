@@ -16,6 +16,8 @@ unity (7.4.0+16.04.20160526.1-0ubuntu2) UNRELEASED; urgency=medium
     #1587618)
   * UnitySettings: Add an option to enable/disable pam account checking.
     (LP: #1460649)
+  * Lockscreen: Make sure warning and errors are properly shown to the
+    user (LP: #1593696)
 
   [ Alberto Milone ]
   * UnitySettings: Add dconf keys for disabling multitouch gestures (LP:
