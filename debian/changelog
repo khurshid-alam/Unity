@@ -19,6 +19,7 @@ unity (7.4.0+16.04.20160526.1-0ubuntu2) UNRELEASED; urgency=medium
   * Lockscreen: Make sure warning and errors are properly shown to the
     user (LP: #1593696)
   * Add missing header to fix compilation error with -Duse_pch=OFF.
+  * Filter out fullscreen window in show desktop mode. (LP: #1597706)
 
   [ Alberto Milone ]
   * UnitySettings: Add dconf keys for disabling multitouch gestures (LP:
