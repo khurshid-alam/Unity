@@ -22,6 +22,9 @@ unity (7.4.0+16.04.20160526.1-0ubuntu2) UNRELEASED; urgency=medium
   * Filter out fullscreen window in show desktop mode. (LP: #1597706)
   * Make sure file manager icon is not removed when unpinned. (LP:
     #1578792)
+  * Properly calculate the intersection geometry in PanelView::Draw.
+    This is needed to properly call SyncGeometries and to avoid problems
+    such as lp:1595698. (LP: #1595698)
 
   [ Alberto Milone ]
   * UnitySettings: Add dconf keys for disabling multitouch gestures (LP:
