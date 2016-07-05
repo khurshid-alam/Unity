@@ -3,6 +3,7 @@ unity (7.4.0+16.04.20160526.1-0ubuntu2) UNRELEASED; urgency=medium
   [ Eleni Maria Stea ]
   * PanelView: Don't draw it if the geo doesn't intersect the monitor
     geo (as in ezoom)
+  * speeds up the showdesktop plugin in lowgfx mode
 
   [ Andrea Azzarone ]
   * Add whitelist for auto-repated keys. (LP: #1586491)
