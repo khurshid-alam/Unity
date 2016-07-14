@@ -2,6 +2,8 @@ unity (7.4.0+16.04.20160715-0ubuntu2) UNRELEASED; urgency=medium
 
   * FileManagerLauncherIcon: Don't trust the Quirk::VISIBLE in the ctor.
     (LP: #1599133)
+  * [TrashLauncherIcon] Create GFileMonitor in an idle to avoid blocking
+    calls. (LP: #1602720)
 
  -- Andrea Azzarone <azzaronea@gmail.com>  Mon, 01 Aug 2016 10:34:14 +0200
 
