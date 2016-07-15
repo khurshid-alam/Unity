@@ -221,6 +221,7 @@ UnityScreen::UnityScreen(CompScreen* screen)
   , key_nav_mode_requested_(false)
   , big_tick_(0)
   , back_buffer_age_(0)
+  , next_active_window_(0)
 {
   Timer timer;
 #ifndef USE_GLES
@@ -300,12 +301,12 @@ UnityScreen::UnityScreen(CompScreen* screen)
       (getenv("UNITY_LOW_GFX_MODE") != NULL && atoi(getenv("UNITY_LOW_GFX_MODE")) == 1) ||
        optionGetLowGraphicsMode())
     {
-      unity_settings_.SetLowGfxMode(true);
+      unity_settings_.low_gfx = true;
     }
 
   if (getenv("UNITY_LOW_GFX_MODE") != NULL && atoi(getenv("UNITY_LOW_GFX_MODE")) == 0)
   {
-    unity_settings_.SetLowGfxMode(false);
+    unity_settings_.low_gfx = false;
   }
 #endif
 
@@ -445,6 +446,7 @@ UnityScreen::UnityScreen(CompScreen* screen)
      auto init_plugins_cb = sigc::mem_fun(this, &UnityScreen::InitPluginActions);
      sources_.Add(std::make_shared<glib::Idle>(init_plugins_cb, glib::Source::Priority::DEFAULT));
 
+     Settings::Instance().gestures_changed.connect(sigc::mem_fun(this, &UnityScreen::UpdateGesturesSupport));
      InitGesturesSupport();
 
      LoadPanelShadowTexture();
@@ -1214,6 +1216,8 @@ void UnityWindow::leaveShowDesktop ()
 
 void UnityWindow::activate ()
 {
+  uScreen->SetNextActiveWindow(window->id());
+
   ShowdesktopHandler::InhibitLeaveShowdesktopMode (window->id ());
   window->activate ();
   ShowdesktopHandler::AllowLeaveShowdesktopMode (window->id ());
@@ -2483,7 +2487,7 @@ bool UnityScreen::altTabNextWindowInitiate(CompAction* action, CompAction::State
   }
   else
   {
-    switcher_controller_->detail = true;
+    switcher_controller_->SetDetail(true);
   }
 
   action->setState(action->state() | CompAction::StateTermKey);
@@ -2982,7 +2986,7 @@ bool UnityWindow::glPaint(const GLWindowPaintAttrib& attrib,
         uScreen->windows_for_monitor_[monitor] = 1;
 
       if (!(mask & nonOcclusionBits) &&
-          (window->state() & CompWindowStateFullscreenMask && !window->minimized()) &&
+          (window->state() & CompWindowStateFullscreenMask && !window->minimized() && !window->inShowDesktopMode()) &&
           uScreen->windows_for_monitor_[monitor] == 1)
           // And I've been advised to test other things, but they don't work:
           // && (attrib.opacity == OPAQUE)) <-- Doesn't work; Only set in glDraw
@@ -3723,7 +3727,7 @@ void UnityScreen::optionChanged(CompOption* opt, UnityshellOptions::Options num)
       else
           BackgroundEffectHelper::blur_type = (unity::BlurType)optionGetDashBlurExperimental();
 
-      unity::Settings::Instance().SetLowGfxMode(optionGetLowGraphicsMode());
+      unity::Settings::Instance().low_gfx = optionGetLowGraphicsMode();
       break;
     case UnityshellOptions::DecayRate:
       launcher_options->edge_decay_rate = optionGetDecayRate() * 100;
@@ -4077,24 +4081,24 @@ void UnityScreen::InitUnityComponents()
   ShowFirstRunHints();
 
   // Setup Session Controller
-  auto manager = std::make_shared<session::GnomeManager>();
-  manager->lock_requested.connect(sigc::mem_fun(this, &UnityScreen::OnLockScreenRequested));
-  manager->prompt_lock_requested.connect(sigc::mem_fun(this, &UnityScreen::OnLockScreenRequested));
-  manager->locked.connect(sigc::mem_fun(this, &UnityScreen::OnScreenLocked));
-  manager->unlocked.connect(sigc::mem_fun(this, &UnityScreen::OnScreenUnlocked));
-  session_dbus_manager_ = std::make_shared<session::DBusManager>(manager);
-  session_controller_ = std::make_shared<session::Controller>(manager);
+  auto session = std::make_shared<session::GnomeManager>();
+  session->lock_requested.connect(sigc::mem_fun(this, &UnityScreen::OnLockScreenRequested));
+  session->prompt_lock_requested.connect(sigc::mem_fun(this, &UnityScreen::OnLockScreenRequested));
+  session->locked.connect(sigc::mem_fun(this, &UnityScreen::OnScreenLocked));
+  session->unlocked.connect(sigc::mem_fun(this, &UnityScreen::OnScreenUnlocked));
+  session_dbus_manager_ = std::make_shared<session::DBusManager>(session);
+  session_controller_ = std::make_shared<session::Controller>(session);
   LOG_INFO(logger) << "InitUnityComponents-Session " << timer.ElapsedSeconds() << "s";
   Introspectable::AddChild(session_controller_.get());
 
   // Setup Lockscreen Controller
-  screensaver_dbus_manager_ = std::make_shared<lockscreen::DBusManager>(manager);
-  lockscreen_controller_ = std::make_shared<lockscreen::Controller>(screensaver_dbus_manager_, manager);
+  screensaver_dbus_manager_ = std::make_shared<lockscreen::DBusManager>(session);
+  lockscreen_controller_ = std::make_shared<lockscreen::Controller>(screensaver_dbus_manager_, session, menus_->KeyGrabber());
   UpdateActivateIndicatorsKey();
   LOG_INFO(logger) << "InitUnityComponents-Lockscreen " << timer.ElapsedSeconds() << "s";
 
   if (g_file_test((DesktopUtilities::GetUserRuntimeDirectory()+local::LOCKED_STAMP).c_str(), G_FILE_TEST_EXISTS))
-    manager->PromptLockScreen();
+    session->PromptLockScreen();
 
   auto on_launcher_size_changed = [this] (nux::Area* area, int w, int h) {
     /* The launcher geometry includes 1px used to draw the right/top margin
@@ -4186,22 +4190,26 @@ lockscreen::Controller::Ptr UnityScreen::lockscreen_controller()
   return lockscreen_controller_;
 }
 
+void UnityScreen::UpdateGesturesSupport()
+{
+  Settings::Instance().gestures_launcher_drag() ? gestures_sub_launcher_->Activate() : gestures_sub_launcher_->Deactivate();
+  Settings::Instance().gestures_dash_tap() ? gestures_sub_dash_->Activate() : gestures_sub_dash_->Deactivate();
+  Settings::Instance().gestures_windows_drag_pinch() ? gestures_sub_windows_->Activate() : gestures_sub_windows_->Deactivate();
+}
+
 void UnityScreen::InitGesturesSupport()
 {
   std::unique_ptr<nux::GestureBroker> gesture_broker(new UnityGestureBroker);
   wt->GetWindowCompositor().SetGestureBroker(std::move(gesture_broker));
-
   gestures_sub_launcher_.reset(new nux::GesturesSubscription);
   gestures_sub_launcher_->SetGestureClasses(nux::DRAG_GESTURE);
   gestures_sub_launcher_->SetNumTouches(4);
   gestures_sub_launcher_->SetWindowId(GDK_ROOT_WINDOW());
-  gestures_sub_launcher_->Activate();
 
   gestures_sub_dash_.reset(new nux::GesturesSubscription);
   gestures_sub_dash_->SetGestureClasses(nux::TAP_GESTURE);
   gestures_sub_dash_->SetNumTouches(4);
   gestures_sub_dash_->SetWindowId(GDK_ROOT_WINDOW());
-  gestures_sub_dash_->Activate();
 
   gestures_sub_windows_.reset(new nux::GesturesSubscription);
   gestures_sub_windows_->SetGestureClasses(nux::TOUCH_GESTURE
@@ -4209,7 +4217,9 @@ void UnityScreen::InitGesturesSupport()
                                          | nux::PINCH_GESTURE);
   gestures_sub_windows_->SetNumTouches(3);
   gestures_sub_windows_->SetWindowId(GDK_ROOT_WINDOW());
-  gestures_sub_windows_->Activate();
+
+  // Apply the user's settings
+  UpdateGesturesSupport();
 }
 
 CompAction::Vector& UnityScreen::getActions()
@@ -4243,6 +4253,16 @@ void UnityScreen::ShowFirstRunHints()
     }
     return false;
   });
+}
+
+Window UnityScreen::GetNextActiveWindow() const
+{
+  return next_active_window_;
+}
+
+void UnityScreen::SetNextActiveWindow(Window next_active_window)
+{
+  next_active_window_ = next_active_window;
 }
 
 /* Window init */
@@ -4604,7 +4624,7 @@ void UnityWindow::OnTerminateSpread()
 
   if (IsInShowdesktopMode())
   {
-    if (!(screen->activeWindow() == window->id()))
+    if (uScreen->GetNextActiveWindow() != window->id())
     {
       if (!mShowdesktopHandler)
         mShowdesktopHandler.reset(new ShowdesktopHandler(static_cast <ShowdesktopHandlerWindowInterface *>(this),

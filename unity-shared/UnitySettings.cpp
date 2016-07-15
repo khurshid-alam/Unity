@@ -39,6 +39,7 @@ const std::string SETTINGS_NAME = "com.canonical.Unity";
 const std::string FORM_FACTOR = "form-factor";
 const std::string DOUBLE_CLICK_ACTIVATE = "double-click-activate";
 const std::string DESKTOP_TYPE = "desktop-type";
+const std::string PAM_CHECK_ACCOUNT_TYPE = "pam-check-account-type";
 
 const std::string LAUNCHER_SETTINGS = "com.canonical.Unity.Launcher";
 const std::string LAUNCHER_POSITION = "launcher-position";
@@ -66,6 +67,11 @@ const std::string GNOME_TEXT_SCALE_FACTOR = "text-scaling-factor";
 const std::string REMOTE_CONTENT_SETTINGS = "com.canonical.Unity.Lenses";
 const std::string REMOTE_CONTENT_KEY = "remote-content-search";
 
+const std::string GESTURES_SETTINGS = "com.canonical.Unity.Gestures";
+const std::string LAUNCHER_DRAG = "launcher-drag";
+const std::string DASH_TAP = "dash-tap";
+const std::string WINDOWS_DRAG_PINCH = "windows-drag-pinch";
+
 const int DEFAULT_LAUNCHER_SIZE = 64;
 const int MINIMUM_DESKTOP_HEIGHT = 800;
 const int GNOME_SETTINGS_CHANGED_WAIT_SECONDS = 1;
@@ -83,6 +89,7 @@ public:
     , usettings_(g_settings_new(SETTINGS_NAME.c_str()))
     , launcher_settings_(g_settings_new(LAUNCHER_SETTINGS.c_str()))
     , lim_settings_(g_settings_new(LIM_SETTINGS.c_str()))
+    , gestures_settings_(g_settings_new(GESTURES_SETTINGS.c_str()))
     , ui_settings_(g_settings_new(UI_SETTINGS.c_str()))
     , ubuntu_ui_settings_(g_settings_new(UBUNTU_UI_SETTINGS.c_str()))
     , gnome_ui_settings_(g_settings_new(GNOME_UI_SETTINGS.c_str()))
@@ -93,7 +100,6 @@ public:
     , cursor_scale_(1.0)
     , cached_double_click_activate_(true)
     , changing_gnome_settings_(false)
-    , lowGfx_(false)
     , remote_content_enabled_(true)
   {
     parent_->form_factor.SetGetterFunction(sigc::mem_fun(this, &Impl::GetFormFactor));
@@ -103,6 +109,7 @@ public:
     parent_->launcher_position.SetGetterFunction(sigc::mem_fun(this, &Impl::GetLauncherPosition));
     parent_->launcher_position.SetSetterFunction(sigc::mem_fun(this, &Impl::SetLauncherPosition));
     parent_->desktop_type.SetGetterFunction(sigc::mem_fun(this, &Impl::GetDesktopType));
+    parent_->pam_check_account_type.SetGetterFunction(sigc::mem_fun(this, &Impl::GetPamCheckAccountType));
 
     for (unsigned i = 0; i < monitors::MAX; ++i)
       em_converters_.emplace_back(std::make_shared<EMConverter>());
@@ -160,6 +167,10 @@ public:
       UpdateLimSetting();
     });
 
+    signals_.Add<void, GSettings*, const gchar*>(gestures_settings_, "changed", [this] (GSettings*, const gchar*) {
+      UpdateGesturesSetting();
+    });
+
     signals_.Add<void, GSettings*, const gchar*>(remote_content_settings_, "changed::" + REMOTE_CONTENT_KEY, [this] (GSettings*, const gchar* t) {
       UpdateRemoteContentSearch();
     });
@@ -168,6 +179,7 @@ public:
 
     // The order is important here, DPI is the last thing to be updated
     UpdateLimSetting();
+    UpdateGesturesSetting();
     UpdateTextScaleFactor();
     UpdateCursorScaleFactor();
     UpdateFontSize();
@@ -222,6 +234,14 @@ public:
     parent_->lim_unfocused_popup = g_settings_get_boolean(lim_settings_, UNFOCUSED_MENU_POPUP.c_str());
   }
 
+  void UpdateGesturesSetting()
+  {
+    parent_->gestures_launcher_drag = g_settings_get_boolean(gestures_settings_, LAUNCHER_DRAG.c_str());
+    parent_->gestures_dash_tap = g_settings_get_boolean(gestures_settings_, DASH_TAP.c_str());
+    parent_->gestures_windows_drag_pinch = g_settings_get_boolean(gestures_settings_, WINDOWS_DRAG_PINCH.c_str());
+    parent_->gestures_changed.emit();
+  }
+
   FormFactor GetFormFactor() const
   {
     return cached_form_factor_;
@@ -252,6 +272,11 @@ public:
   DesktopType GetDesktopType() const
   {
     return static_cast<DesktopType>(g_settings_get_enum(usettings_, DESKTOP_TYPE.c_str()));
+  }
+
+  bool GetPamCheckAccountType() const
+  {
+    return g_settings_get_boolean(usettings_, PAM_CHECK_ACCOUNT_TYPE.c_str());
   }
 
   int GetFontSize() const
@@ -384,6 +409,7 @@ public:
   glib::Object<GSettings> usettings_;
   glib::Object<GSettings> launcher_settings_;
   glib::Object<GSettings> lim_settings_;
+  glib::Object<GSettings> gestures_settings_;
   glib::Object<GSettings> ui_settings_;
   glib::Object<GSettings> ubuntu_ui_settings_;
   glib::Object<GSettings> gnome_ui_settings_;
@@ -397,7 +423,6 @@ public:
   double cursor_scale_;
   bool cached_double_click_activate_;
   bool changing_gnome_settings_;
-  bool lowGfx_;
   bool remote_content_enabled_;
 };
 
@@ -406,7 +431,8 @@ public:
 //
 
 Settings::Settings()
-  : is_standalone(false)
+  : low_gfx(false)
+  , is_standalone(false)
   , pimpl(new Impl(this))
 {
   if (settings_instance)
@@ -432,21 +458,6 @@ Settings& Settings::Instance()
   }
 
   return *settings_instance;
-}
-
-bool Settings::GetLowGfxMode() const
-{
-  return pimpl->lowGfx_;
-}
-
-void Settings::SetLowGfxMode(const bool low_gfx)
-{
-  if (pimpl->lowGfx_ != low_gfx)
-  {
-    pimpl->lowGfx_ = low_gfx;
-
-    low_gfx_changed.emit();
-  }
 }
 
 EMConverter::Ptr const& Settings::em(int monitor) const
