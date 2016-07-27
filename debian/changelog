@@ -8,6 +8,8 @@ unity (7.4.0+16.04.20160715-0ubuntu2) UNRELEASED; urgency=medium
   * [LockSceen] Remove numlock warning. (LP: #1526322)
   * Make sure initiate and terminate callbacks are not empty before
     calling them. (LP: #1605012)
+  * Properly destroy close_button_ to properly disconnect lambda. (LP:
+    #1605010)
 
   [ Marco Trevisan (Treviño) ]
   * Unity script: use result from unity_support_test to check the right
