@@ -5,6 +5,7 @@ unity (7.4.0+16.04.20160715-0ubuntu2) UNRELEASED; urgency=medium
     (LP: #1599133)
   * [TrashLauncherIcon] Create GFileMonitor in an idle to avoid blocking
     calls. (LP: #1602720)
+  * [LockSceen] Remove numlock warning. (LP: #1526322)
 
   [ Marco Trevisan (Treviño) ]
   * Unity script: use result from unity_support_test to check the right
