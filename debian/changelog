@@ -23,6 +23,9 @@ unity (7.4.0+16.04.20160715-0ubuntu2) UNRELEASED; urgency=medium
   * LockScreenAcceleratorController: ensure callbacks are valid before
     calling them (LP: #1605012)
 
+  [ Eleni Maria Stea ]
+  * DecoratedWindow: Added shadows for shaped windows
+
  -- Andrea Azzarone <azzaronea@gmail.com>  Mon, 01 Aug 2016 10:34:14 +0200
 
 unity (7.4.0+16.04.20160715-0ubuntu1) xenial; urgency=medium
