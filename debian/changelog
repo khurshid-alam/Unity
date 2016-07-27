@@ -20,6 +20,8 @@ unity (7.4.0+16.04.20160715-0ubuntu2) UNRELEASED; urgency=medium
   [ Marco Trevisan (Treviño) ]
   * Unity script: use result from unity_support_test to check the right
     COMPIZ_CONFIG_PROFILE to use (LP: #1602377)
+  * LockScreenAcceleratorController: ensure callbacks are valid before
+    calling them (LP: #1605012)
 
  -- Andrea Azzarone <azzaronea@gmail.com>  Mon, 01 Aug 2016 10:34:14 +0200
 
