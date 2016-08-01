@@ -29,6 +29,7 @@ unity (7.4.0+16.04.20160715-0ubuntu2) UNRELEASED; urgency=medium
   [ Marco Trevisan (Treviño) ]
   * DecoratedWindow: Cleanup shadows for shaped windows, reduce
     recomputation (LP: #1608418)
+  * UnityWindowView: don't try to deference close_button_ if its' null
 
  -- Andrea Azzarone <azzaronea@gmail.com>  Mon, 01 Aug 2016 10:34:14 +0200
 
