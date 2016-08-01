@@ -13,6 +13,9 @@ unity (7.4.0+16.04.20160715-0ubuntu2) UNRELEASED; urgency=medium
   * Use the standard notification-device-eject in the "device eject"
     notification. This allows us to scale it properly on high-dpi
     setups. (LP: #1605231)
+  * Add tools to enforce unityshell plugin for the current profile and
+    add "move" and "resize" plugins as requirements. (LP: #1506023, LP:
+    #1605007, LP: #1604657)
 
   [ Marco Trevisan (Treviño) ]
   * Unity script: use result from unity_support_test to check the right
