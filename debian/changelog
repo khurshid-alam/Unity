@@ -8,6 +8,10 @@ unity (7.4.0+16.04.20160801.2-0ubuntu2) UNRELEASED; urgency=medium
   * When locked discard damages from windows below lockscreen. (LP:
     #1605180)
 
+  [ Marco Trevisan (Treviño) ]
+  * DecoratedWindow: avoid deferencing an invalid shadow texture ptr,
+    and split functions (LP: #1608464)
+
  -- Marco Trevisan (Treviño) <mail@3v1n0.net>  Tue, 23 Aug 2016 17:00:35 +0200
 
 unity (7.4.0+16.04.20160801.2-0ubuntu1) xenial; urgency=medium
