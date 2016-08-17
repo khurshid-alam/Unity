@@ -12,6 +12,7 @@ unity (7.4.0+16.04.20160801.2-0ubuntu2) UNRELEASED; urgency=medium
   * Make sure the switcher detail view is properly scaled. Also scale
     the xy_offset to make sure the switcher and launcher do not overlap.
     (LP: #1605256)
+  * Close session dialog on first ESC. (LP: #1521116)
 
   [ Marco Trevisan (Treviño) ]
   * DecoratedWindow: avoid deferencing an invalid shadow texture ptr,
