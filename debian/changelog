@@ -26,6 +26,8 @@ unity (7.4.0+16.04.20160801.2-0ubuntu2) UNRELEASED; urgency=medium
   * DecorationStyle: set css name for Gtk 3.20
   * OverlayRenderer: properly decorate launcher/panel when the launcher
     is at the bottom (LP: #1611694)
+  * OverlayRenderer: don't use rotated textures, just rotate them at
+    rendering time
 
  -- Marco Trevisan (Treviño) <mail@3v1n0.net>  Tue, 23 Aug 2016 17:00:35 +0200
 
