@@ -22,6 +22,7 @@ unity (7.4.0+16.04.20160801.2-0ubuntu2) UNRELEASED; urgency=medium
   * DecorationsForceQuitDialog: make CSS selectors work with gtk 3.20
   * UserAuthenticatorPam: ensure pam_handle_ is null initialized and
     don't proceed if not set (LP: #1611668)
+  * DecorationStyle: set css name for Gtk 3.20
 
  -- Marco Trevisan (Treviño) <mail@3v1n0.net>  Tue, 23 Aug 2016 17:00:35 +0200
 
