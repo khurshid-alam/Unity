@@ -17,6 +17,9 @@ unity (7.4.0+16.04.20160801.2-0ubuntu2) UNRELEASED; urgency=medium
   * Disable menu discovery animation if MenusDiscoveryDuration is 0.
     (LP: #942962)
   * Redraw fake decorations on window resize. (LP: #940470)
+  * Use compiz::Window::serverNext instead of compiz::Window::next in
+    IsWindowObscured as the latter can be outdated just after
+    scale/spread terminates. (LP: #1614116)
 
   [ Marco Trevisan (Treviño) ]
   * DecoratedWindow: avoid deferencing an invalid shadow texture ptr,
