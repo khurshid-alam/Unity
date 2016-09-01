@@ -1,3 +1,10 @@
+unity (7.4.0+16.04.20160906-0ubuntu2) UNRELEASED; urgency=medium
+
+  * InputMonitor: add an unity class that monitors XInput2 events and
+    converts them to XEvent
+
+ -- Marco Trevisan (Treviño) <mail@3v1n0.net>  Tue, 04 Jul 2017 18:12:47 +0200
+
 unity (7.4.0+16.04.20160906-0ubuntu1) xenial; urgency=medium
 
   [ Marco Trevisan (Treviño) ]
