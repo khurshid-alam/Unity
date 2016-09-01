@@ -6,6 +6,7 @@ unity (7.4.0+16.04.20160906-0ubuntu2) UNRELEASED; urgency=medium
     instead of relying on its implementation
   * DecorationsMenuLayout: use input monitor for menu scrubbing (LP:
     #1614597)
+  * PanelView: use InputMonitor to track menu events
 
  -- Marco Trevisan (Treviño) <mail@3v1n0.net>  Tue, 04 Jul 2017 18:12:47 +0200
 
