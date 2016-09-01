@@ -12,6 +12,8 @@ unity (7.4.0+16.04.20160906-0ubuntu2) UNRELEASED; urgency=medium
   * MenuManager: add support for mouse trackers with triangle algorithm
     support (LP: #1618405)
   * PanelView: scale gradient refinement properly
+  * PanelService: don't allow to deactivate menus if they've been opened
+    too shortly
 
  -- Marco Trevisan (Treviño) <mail@3v1n0.net>  Tue, 04 Jul 2017 18:12:47 +0200
 
