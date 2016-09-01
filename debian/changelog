@@ -9,6 +9,8 @@ unity (7.4.0+16.04.20160906-0ubuntu2) UNRELEASED; urgency=medium
   * PanelView: use InputMonitor to track menu events
   * LockScreenPanel: use InputMonitor events instead of mouse polling
     for menu scrubbing
+  * MenuManager: add support for mouse trackers with triangle algorithm
+    support (LP: #1618405)
 
  -- Marco Trevisan (Treviño) <mail@3v1n0.net>  Tue, 04 Jul 2017 18:12:47 +0200
 
