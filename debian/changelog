@@ -33,6 +33,8 @@ unity (7.4.0+16.04.20160801.2-0ubuntu2) UNRELEASED; urgency=medium
     rendering time
   * SpreadWidgets: add container for spread filter and new spread
     decorations (LP: #1283314)
+  * WindowButton: properly partially unmaximize a window when
+    middle/left clicking in the restore button (LP: #1616136)
 
  -- Marco Trevisan (Treviño) <mail@3v1n0.net>  Tue, 23 Aug 2016 17:00:35 +0200
 
