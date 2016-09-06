@@ -8,7 +8,7 @@ unity (7.4.0+16.04.20160801.2-0ubuntu2) UNRELEASED; urgency=medium
   * When locked discard damages from windows below lockscreen. (LP:
     #1605180)
   * DecoratedWindow: display unmaximize button if the window is
-    vertically or horizontally maximized (LP: #1608480, LP: #1616031)
+    vertically or horizontally maximized (LP: #1608480)
   * Make sure the switcher detail view is properly scaled. Also scale
     the xy_offset to make sure the switcher and launcher do not overlap.
     (LP: #1605256)
@@ -25,7 +25,7 @@ unity (7.4.0+16.04.20160801.2-0ubuntu2) UNRELEASED; urgency=medium
   * DecoratedWindow: avoid deferencing an invalid shadow texture ptr,
     and split functions (LP: #1608464)
   * DecoratedWindow: display unmaximize button if the window is
-    vertically or horizontally maximized (LP: #1608480, LP: #1616031)
+    vertically or horizontally maximized (LP: #1608480)
   * DecorationsForceQuitDialog: make CSS selectors work with gtk 3.20
   * UserAuthenticatorPam: ensure pam_handle_ is null initialized and
     don't proceed if not set (LP: #1611668)
