@@ -49,6 +49,9 @@ namespace
   RawPixel const EXTRA_ICON_SPACE = 10_em;
   RawPixel const TEXT_SIZE = 15_em;
 
+  RawPixel const LAYOUT_SPACING = 8_em;
+  RawPixel const LAYOUT_MAX_ROW_HEIGHT = 400_em;
+
   unsigned int const ANIMATION_LENGTH = 250;
   unsigned int const MAX_DIRECTIONS_CHANGED = 3;
   unsigned int const SCROLL_WHEEL_EVENTS_DISTANCE = 75;
@@ -87,6 +90,9 @@ SwitcherView::SwitcherView(ui::AbstractIconRenderer::Ptr const& renderer)
   text_view_->SetFontSize(10);
   text_view_->SetFontWeight(PANGO_WEIGHT_BOLD);
   text_view_->SetScale(scale);
+
+  layout_system_.spacing = LAYOUT_SPACING.CP(scale);
+  layout_system_.max_row_height = LAYOUT_MAX_ROW_HEIGHT.CP(scale);
 
   icon_size.changed.connect(sigc::mem_fun(this, &SwitcherView::OnIconSizeChanged));
   tile_size.changed.connect(sigc::mem_fun(this, &SwitcherView::OnTileSizeChanged));
@@ -211,10 +217,13 @@ void SwitcherView::OnScaleChanged(double scale)
   text_size = TEXT_SIZE.CP(scale);
   vertical_size = tile_size + VERTICAL_PADDING.CP(scale) * 2;
   icon_renderer_->scale = scale;
+  layout_system_.spacing = LAYOUT_SPACING.CP(scale);
+  layout_system_.max_row_height = LAYOUT_MAX_ROW_HEIGHT.CP(scale);
 }
 
 void SwitcherView::StartAnimation()
 {
+  animation_.SetDuration(Settings::Instance().low_gfx() ? 0 : animation_length);
   animation::Start(animation_, animation::Direction::FORWARD);
 }
 
@@ -249,7 +258,6 @@ void SwitcherView::OnDetailSelectionChanged(bool detail)
     render_targets_.clear();
   }
 
-  animation_.SetDuration(Settings::Instance().low_gfx() ? 0 : animation_length);
   SaveLast();
 }
 
@@ -260,7 +268,6 @@ void SwitcherView::OnSelectionChanged(AbstractLauncherIcon::Ptr const& selection
 
   delta_tracker_.ResetState();
 
-  animation_.SetDuration(animation_length);
   SaveLast();
 }
 

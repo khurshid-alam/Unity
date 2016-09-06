@@ -1,3 +1,46 @@
+unity (7.4.0+16.04.20160801.2-0ubuntu2) UNRELEASED; urgency=medium
+
+  [ Marco Trevisan (Treviño) ]
+  * SwitcherView: always disable animations when in lowgfx mode (LP:
+    #1602784)
+
+  [ Andrea Azzarone ]
+  * When locked discard damages from windows below lockscreen. (LP:
+    #1605180)
+  * DecoratedWindow: display unmaximize button if the window is
+    vertically or horizontally maximized (LP: #1608480)
+  * Make sure the switcher detail view is properly scaled. Also scale
+    the xy_offset to make sure the switcher and launcher do not overlap.
+    (LP: #1605256)
+  * Close session dialog on first ESC. (LP: #1521116)
+  * Filter out scrolling envents for FilterExpanderLabel. (LP: #1604632)
+  * Disable menu discovery animation if MenusDiscoveryDuration is 0.
+    (LP: #942962)
+  * Redraw fake decorations on window resize. (LP: #940470)
+  * Use compiz::Window::serverNext instead of compiz::Window::next in
+    IsWindowObscured as the latter can be outdated just after
+    scale/spread terminates. (LP: #1614116)
+
+  [ Marco Trevisan (Treviño) ]
+  * DecoratedWindow: avoid deferencing an invalid shadow texture ptr,
+    and split functions (LP: #1608464)
+  * DecoratedWindow: display unmaximize button if the window is
+    vertically or horizontally maximized (LP: #1608480)
+  * DecorationsForceQuitDialog: make CSS selectors work with gtk 3.20
+  * UserAuthenticatorPam: ensure pam_handle_ is null initialized and
+    don't proceed if not set (LP: #1611668)
+  * DecorationStyle: set css name for Gtk 3.20
+  * OverlayRenderer: properly decorate launcher/panel when the launcher
+    is at the bottom (LP: #1611694)
+  * OverlayRenderer: don't use rotated textures, just rotate them at
+    rendering time
+  * SpreadWidgets: add container for spread filter and new spread
+    decorations (LP: #1283314)
+  * WindowButton: properly partially unmaximize a window when
+    middle/left clicking in the restore button (LP: #1616136)
+
+ -- Marco Trevisan (Treviño) <mail@3v1n0.net>  Tue, 23 Aug 2016 17:00:35 +0200
+
 unity (7.4.0+16.04.20160801.2-0ubuntu1) xenial; urgency=medium
 
   [ Andrea Azzarone ]
