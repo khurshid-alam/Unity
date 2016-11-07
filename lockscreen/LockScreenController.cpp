@@ -463,6 +463,7 @@ void Controller::OnScreenSaverActivationRequest(bool activate)
 void Controller::LockScreen()
 {
   menu_manager_ = std::make_shared<menu::Manager>(std::make_shared<indicator::LockScreenDBusIndicators>(), key_grabber_);
+  menu_manager_->Indicators()->icon_paths_changed.clear(); // Ignore custom icon themes for lockscreen, see bug #1635625
   upstart_wrapper_->Emit("desktop-lock");
 
   accelerator_controller_ = std::make_shared<AcceleratorController>(key_grabber_);

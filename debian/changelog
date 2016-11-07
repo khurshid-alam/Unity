@@ -14,6 +14,8 @@ unity (7.4.0+16.04.20160906-0ubuntu2) UNRELEASED; urgency=medium
   * PanelView: scale gradient refinement properly
   * PanelService: don't allow to deactivate menus if they've been opened
     too shortly
+  * LockScreenController: ignore icon_paths_changed signal in
+    menumanager for Lockscreen
 
  -- Marco Trevisan (Treviño) <mail@3v1n0.net>  Tue, 04 Jul 2017 18:12:47 +0200
 
