@@ -27,6 +27,10 @@ unity (7.4.0+16.04.20160906-0ubuntu2) UNRELEASED; urgency=medium
   * GnomeSession: Retrieve the session id using dbus if $XDG_SESSION_ID
     is not set
 
+  [ Marco Trevisan (Treviño) ]
+  * LockScreenController: use InputMonitor to get all the events and
+    hide the Blank Window (LP: #1321075)
+
  -- Marco Trevisan (Treviño) <mail@3v1n0.net>  Tue, 04 Jul 2017 18:12:47 +0200
 
 unity (7.4.0+16.04.20160906-0ubuntu1) xenial; urgency=medium
