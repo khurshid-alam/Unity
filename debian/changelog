@@ -30,6 +30,8 @@ unity (7.4.0+16.04.20160906-0ubuntu2) UNRELEASED; urgency=medium
   [ Marco Trevisan (Treviño) ]
   * LockScreenController: use InputMonitor to get all the events and
     hide the Blank Window (LP: #1321075)
+  * LockScreenController: use input monitor to get the events to switch
+    monitor (LP: #1316862)
 
  -- Marco Trevisan (Treviño) <mail@3v1n0.net>  Tue, 04 Jul 2017 18:12:47 +0200
 
