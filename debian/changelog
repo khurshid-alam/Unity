@@ -34,6 +34,7 @@ unity (7.4.0+16.04.20160906-0ubuntu2) UNRELEASED; urgency=medium
     monitor (LP: #1316862)
   * LauncherOptions: use track_obj to manage option changes (LP:
     #1622995)
+  * UnityScreen: toggle gestures recognition on lock (LP: #1645507)
 
  -- Marco Trevisan (Treviño) <mail@3v1n0.net>  Tue, 04 Jul 2017 18:12:47 +0200
 
