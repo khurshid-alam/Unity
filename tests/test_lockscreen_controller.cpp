@@ -183,7 +183,7 @@ TEST_F(TestLockScreenController, SwitchToMultiMonitor)
   session_manager->lock_requested.emit();
 
   Utils::WaitUntilMSec([this]{ return controller.shields_.size() == 1; });
-  ASSERT_EQ(1, controller.shields_.size());
+  ASSERT_EQ(1u, controller.shields_.size());
 
   Utils::WaitUntilMSec([this]{ return uscreen.GetMonitors().at(0) == controller.shields_.at(0)->GetGeometry(); });
   EXPECT_EQ(uscreen.GetMonitors().at(0), controller.shields_.at(0)->GetGeometry());
@@ -213,7 +213,7 @@ TEST_F(TestLockScreenController, SwitchToSingleMonitor)
 
   uscreen.Reset(/* emit_change */ true);
 
-  ASSERT_EQ(1, controller.shields_.size());
+  ASSERT_EQ(1u, controller.shields_.size());
   EXPECT_EQ(uscreen.GetMonitors().at(0), controller.shields_.at(0)->GetGeometry());
 }
 
@@ -222,7 +222,7 @@ TEST_F(TestLockScreenController, UnlockScreenOnSingleMonitor)
   session_manager->lock_requested.emit();
 
   Utils::WaitUntilMSec([this]{ return controller.shields_.size() == 1; });
-  ASSERT_EQ(1, controller.shields_.size());
+  ASSERT_EQ(1u, controller.shields_.size());
 
   session_manager->unlock_requested.emit();
   tick_source.tick(ANIMATION_DURATION);
@@ -250,7 +250,7 @@ TEST_F(TestLockScreenController, ShieldHasGrabAfterBlank)
   // Lock...
   session_manager->lock_requested.emit();
   Utils::WaitUntilMSec([this]{ return controller.shields_.size() == 1; });
-  ASSERT_EQ(1, controller.shields_.size());
+  ASSERT_EQ(1u, controller.shields_.size());
 
   // ...and let the screen blank.
   session_manager->presence_status_changed.emit(true);

@@ -324,7 +324,7 @@ TEST_F(TestGLibSignals, TestConnectReplacePreviousConnection)
   g_signal_emit_by_name(test_signals_, "signal0");
 
   EXPECT_FALSE(signal0_received_);
-  EXPECT_EQ(signal0_num_cb, 1);
+  EXPECT_EQ(signal0_num_cb, 1u);
 }
 
 TEST_F(TestGLibSignals, TestManagerConstruction)
@@ -394,7 +394,7 @@ TEST_F(TestGLibSignals, TestManagerAddition)
   EXPECT_EQ(signal6, signal6_added);
 
 
-  EXPECT_EQ(manager.GetConnections().size(), 7);
+  EXPECT_EQ(manager.GetConnections().size(), 7u);
 }
 
 TEST_F(TestGLibSignals, TestManagerAdditionTemplate)
@@ -416,7 +416,7 @@ TEST_F(TestGLibSignals, TestManagerAdditionTemplate)
   EXPECT_NE(nullptr, (manager.Add<gboolean, TestSignals*, const char*, int, float, double, gboolean, char>(test_signals_, "signal6",
                                                                                                            sigc::mem_fun(this, &TestGLibSignals::Signal6Callback))));
 
-  EXPECT_EQ(manager.GetConnections().size(), 7);
+  EXPECT_EQ(manager.GetConnections().size(), 7u);
 }
 
 TEST_F(TestGLibSignals, TestManagerConnection)
