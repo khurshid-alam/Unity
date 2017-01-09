@@ -26,6 +26,7 @@ unity (7.4.0+16.04.20160906-0ubuntu2) UNRELEASED; urgency=medium
     than 1.0 (LP: #1637991)
   * GnomeSession: Retrieve the session id using dbus if $XDG_SESSION_ID
     is not set
+  * Round gtk scaling factor to closest integer. (LP: #1649736)
 
   [ Marco Trevisan (Treviño) ]
   * LockScreenController: use InputMonitor to get all the events and
