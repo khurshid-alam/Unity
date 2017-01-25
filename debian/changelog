@@ -46,6 +46,10 @@ unity (7.4.0+16.04.20160906-0ubuntu2) UNRELEASED; urgency=medium
   * shouldn't create blur rectangles when there's no blur, skips the
     blur rects processing in low gfx.
 
+  [ Marco Trevisan (Treviño) ]
+  * GnomeSessionManager: add gcancellable to instance and use it for
+    calls with temporary proxies
+
  -- Marco Trevisan (Treviño) <mail@3v1n0.net>  Tue, 04 Jul 2017 18:12:47 +0200
 
 unity (7.4.0+16.04.20160906-0ubuntu1) xenial; urgency=medium
