@@ -45,6 +45,9 @@ unity (7.4.0+16.04.20160906-0ubuntu2) UNRELEASED; urgency=medium
   [ Eleni Maria Stea ]
   * shouldn't create blur rectangles when there's no blur, skips the
     blur rects processing in low gfx.
+  * removes lowgfx option from ccsm, reads the "lowgfx" gsetting
+    (lp:~hikiko/unity-control-center/unity-control-center.lowgfx) (LP:
+    #1668950)
 
   [ Marco Trevisan (Treviño) ]
   * GnomeSessionManager: add gcancellable to instance and use it for
