@@ -28,6 +28,7 @@ unity (7.4.0+16.04.20160906-0ubuntu2) UNRELEASED; urgency=medium
     is not set
   * Round gtk scaling factor to closest integer. (LP: #1649736)
   * Keep the screen locked if rebooting with autologin. (LP: #1600389)
+  * Use g_mkdir_with_parents instead of mkdir.
 
   [ Marco Trevisan (Treviño) ]
   * LockScreenController: use InputMonitor to get all the events and
