@@ -3,9 +3,10 @@ Section: gnome
 Priority: optional
 Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
 Build-Depends: cmake,
-               compiz-dev (>= 1:0.9.12.2),
+               compiz-dev (>= 1:0.9.12.3+16.04.20170704),
                debhelper (>= 9.0.0~),
                dbus-test-runner,
+               dbus-x11,
                dh-migrations,
                dh-translations (>= 94),
                dh-python,
