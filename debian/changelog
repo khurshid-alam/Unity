@@ -71,6 +71,8 @@ unity (7.4.0+16.04.20160906-0ubuntu2) UNRELEASED; urgency=medium
   * compiz-profile-setter: tool to update the current profile and use in
     systemd and Unity settings (LP: #1668950)
   * BGHash, UnityScreen: get desktop averageColor from compiz
+  * Launcher: disable or reduce most icon effects on lowgfx (LP:
+    #1700859)
 
  -- Marco Trevisan (Treviño) <mail@3v1n0.net>  Tue, 04 Jul 2017 18:12:47 +0200
 
