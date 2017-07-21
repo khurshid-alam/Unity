@@ -73,6 +73,8 @@ unity (7.4.0+16.04.20160906-0ubuntu2) UNRELEASED; urgency=medium
   * BGHash, UnityScreen: get desktop averageColor from compiz
   * Launcher: disable or reduce most icon effects on lowgfx (LP:
     #1700859)
+  * PanelController: ensure we disconnect from signals on destruction
+    (LP: #1504870)
 
  -- Marco Trevisan (Treviño) <mail@3v1n0.net>  Tue, 04 Jul 2017 18:12:47 +0200
 
