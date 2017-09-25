@@ -34,6 +34,8 @@ unity (7.4.0+16.04.20160906-0ubuntu2) UNRELEASED; urgency=medium
   * Refactor the way UserAuthenticator is created and passed around.
     Handle failures to create new threads and fallback to a "Switch to
     greeter..." button in case of failure. (LP: #1311316)
+  * Wait until the color buffer is cleared before suspending. (LP:
+    #1532508)
 
   [ Marco Trevisan (Treviño) ]
   * LockScreenController: use InputMonitor to get all the events and

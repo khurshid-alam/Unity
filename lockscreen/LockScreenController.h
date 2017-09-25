@@ -54,6 +54,8 @@ public:
 
   bool IsLocked() const;
   bool HasOpenMenu() const;
+  bool IsPaintInhibited() const;
+  void MarkBufferHasCleared();
 
 private:
   friend class TestLockScreenController;
@@ -80,6 +82,9 @@ private:
   void OnLockScreenInputEvent(XEvent const&);
   void OnBlankWindowInputEvent(XEvent const&);
 
+  void InhibitPaint();
+  void UninhibitPaint();
+
   std::vector<nux::ObjectPtr<BaseShield>> shields_;
   nux::ObjectWeakPtr<BaseShield> primary_shield_;
   nux::ObjectWeakPtr<AbstractUserPromptView> prompt_view_;
@@ -101,6 +106,8 @@ private:
   bool test_mode_;
   bool prompt_activation_;
   BlurType old_blur_type_;
+  bool is_paint_inhibited_;
+  bool buffer_cleared_;
 
   connection::Wrapper uscreen_connection_;
   connection::Wrapper hidden_window_connection_;
