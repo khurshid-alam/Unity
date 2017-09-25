@@ -31,6 +31,9 @@ unity (7.4.0+16.04.20160906-0ubuntu2) UNRELEASED; urgency=medium
   * Use g_mkdir_with_parents instead of mkdir.
   * Lockscreen: always draw the background-color in the lockscreen (LP:
     #1702701)
+  * Refactor the way UserAuthenticator is created and passed around.
+    Handle failures to create new threads and fallback to a "Switch to
+    greeter..." button in case of failure. (LP: #1311316)
 
   [ Marco Trevisan (Treviño) ]
   * LockScreenController: use InputMonitor to get all the events and
