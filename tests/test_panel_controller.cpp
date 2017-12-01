@@ -19,6 +19,7 @@
 
 #include <gmock/gmock.h>
 
+#include "InputMonitor.h"
 #include "PanelController.h"
 #include "PanelStyle.h"
 #include "PanelView.h"
@@ -46,6 +47,7 @@ struct TestPanelController : public testing::Test
   menu::MockManager::Ptr menus;
   ui::EdgeBarrierController::Ptr edge_barriers;
   launcher::Options::Ptr options;
+  input::Monitor im;
 };
 
 TEST_F(TestPanelController, Construction)
@@ -55,7 +57,7 @@ TEST_F(TestPanelController, Construction)
   {
     Controller pc(menus, edge_barriers);
 
-    ASSERT_EQ(pc.panels().size(), 1);
+    ASSERT_EQ(pc.panels().size(), 1u);
     EXPECT_EQ(pc.panels()[0]->GetMonitor(), 0);
     panel_ptr = pc.panels()[0];
   }
@@ -96,7 +98,7 @@ TEST_F(TestPanelController, MultimonitorSwitchToSingleMonitor)
     ASSERT_EQ(pc.panels().size(), monitors::MAX);
 
     uscreen.Reset();
-    EXPECT_EQ(pc.panels().size(), 1);
+    EXPECT_EQ(pc.panels().size(), 1u);
     EXPECT_EQ(pc.panels()[0]->GetMonitor(), 0);
   }
 }
@@ -125,7 +127,7 @@ TEST_F(TestPanelController, SingleMonitorSwitchToMultimonitor)
   {
     Controller pc(menus, edge_barriers);
 
-    ASSERT_EQ(pc.panels().size(), 1);
+    ASSERT_EQ(pc.panels().size(), 1u);
 
     uscreen.SetupFakeMultiMonitor();
     EXPECT_EQ(pc.panels().size(), monitors::MAX);

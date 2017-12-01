@@ -27,7 +27,9 @@
 #include "LockScreenPromptFactory.h"
 #include "LockScreenShield.h"
 #include "LockScreenSettings.h"
+#include "UserAuthenticatorPam.h"
 #include "unity-shared/AnimationUtils.h"
+#include "unity-shared/InputMonitor.h"
 #include "unity-shared/UnitySettings.h"
 #include "unity-shared/UScreen.h"
 #include "unity-shared/WindowManager.h"
@@ -66,10 +68,13 @@ Controller::Controller(DBusManager::Ptr const& dbus_manager,
   , upstart_wrapper_(upstart_wrapper)
   , shield_factory_(shield_factory)
   , suspend_inhibitor_manager_(std::make_shared<SuspendInhibitorManager>())
+  , user_authenticator_(std::make_shared<UserAuthenticatorPam>())
   , fade_animator_(unity::Settings::Instance().low_gfx() ? 0 : LOCK_FADE_DURATION)
   , blank_window_animator_(IDLE_FADE_DURATION)
   , test_mode_(test_mode)
   , prompt_activation_(false)
+  , is_paint_inhibited_(false)
+  , buffer_cleared_(true)
 {
   auto* uscreen = UScreen::GetDefault();
   uscreen_connection_ = uscreen->changed.connect([this] (int, std::vector<nux::Geometry> const& monitors) {
@@ -87,7 +92,13 @@ Controller::Controller(DBusManager::Ptr const& dbus_manager,
   suspend_inhibitor_manager_->connected.connect(sigc::mem_fun(this, &Controller::SyncInhibitor));
   suspend_inhibitor_manager_->about_to_suspend.connect([this] () {
     if (Settings::Instance().lock_on_suspend())
+    {
+      InhibitPaint();
       session_manager_->PromptLockScreen();
+    }
+  });
+  suspend_inhibitor_manager_->resumed.connect([this] () {
+    UninhibitPaint();
   });
 
   Settings::Instance().lock_on_suspend.changed.connect(sigc::hide(sigc::mem_fun(this, &Controller::SyncInhibitor)));
@@ -117,6 +128,8 @@ Controller::Controller(DBusManager::Ptr const& dbus_manager,
 
     if (animation::GetDirection(fade_animator_) == animation::Direction::BACKWARD)
     {
+      auto events_cb = sigc::track_obj(sigc::mem_fun(this, &Controller::OnLockScreenInputEvent), *primary_shield_);
+      input::Monitor::Get().UnregisterClient(events_cb);
       primary_shield_connections_.Clear();
       uscreen_connection_->block();
       hidden_window_connection_->block();
@@ -130,7 +143,7 @@ Controller::Controller(DBusManager::Ptr const& dbus_manager,
 
       upstart_wrapper_->Emit("desktop-unlock");
       accelerator_controller_.reset();
-      indicators_.reset();
+      menu_manager_.reset();
     }
     else if (!prompt_activation_)
     {
@@ -195,6 +208,20 @@ void Controller::OnPrimaryShieldMotion(int x, int y)
       break;
     }
   }
+}
+
+void Controller::OnLockScreenInputEvent(XEvent const& event)
+{
+  switch (event.type)
+  {
+    case MotionNotify:
+    case ButtonPress:
+      if (primary_shield_->IsIndicatorOpen())
+        break;
+    case ButtonRelease:
+      OnPrimaryShieldMotion(event.xmotion.x_root, event.xmotion.y_root);
+      break;
+  }
 
   ResetPostLockScreenSaver();
 }
@@ -206,11 +233,8 @@ void Controller::SetupPrimaryShieldConnections()
 
   primary_shield_connections_.Clear();
 
-  auto move_cb = sigc::mem_fun(this, &Controller::OnPrimaryShieldMotion);
-  primary_shield_connections_.Add(primary_shield_->grab_motion.connect(move_cb));
-
-  auto key_cb = sigc::hide(sigc::hide(sigc::mem_fun(this, &Controller::ResetPostLockScreenSaver)));
-  primary_shield_connections_.Add(primary_shield_->grab_key.connect(key_cb));
+  auto events_cb = sigc::track_obj(sigc::mem_fun(this, &Controller::OnLockScreenInputEvent), *primary_shield_);
+  input::Monitor::Get().RegisterClient(input::Events::INPUT, events_cb);
 
   if (!session_manager_->is_locked())
   {
@@ -241,7 +265,7 @@ void Controller::EnsureShields(std::vector<nux::Geometry> const& monitors)
 
   if (!prompt_view)
   {
-    prompt_view = test_mode_ ? nux::ObjectPtr<AbstractUserPromptView>() : PromptFactory::CreatePrompt(session_manager_);
+    prompt_view = test_mode_ ? nux::ObjectPtr<AbstractUserPromptView>() : PromptFactory::CreatePrompt(session_manager_, user_authenticator_);
     prompt_view_ = prompt_view.GetPointer();
   }
 
@@ -252,7 +276,7 @@ void Controller::EnsureShields(std::vector<nux::Geometry> const& monitors)
 
     if (i >= shields_size)
     {
-      shield = shield_factory_->CreateShield(session_manager_, indicators_, accelerator_controller_->GetAccelerators(), prompt_view, i, i == primary);
+      shield = shield_factory_->CreateShield(session_manager_, menu_manager_, accelerator_controller_->GetAccelerators(), prompt_view, i, i == primary);
       is_new = true;
     }
 
@@ -314,8 +338,17 @@ void Controller::HideBlankWindow()
   blank_window_->ShowWindow(false);
   animation::SetValue(blank_window_animator_, animation::Direction::BACKWARD);
 
+  if (prompt_activation_)
+    BlankWindowGrabEnable(false);
+
   blank_window_.Release();
   lockscreen_delay_timeout_.reset();
+}
+
+void Controller::OnBlankWindowInputEvent(XEvent const&)
+{
+  if (!lockscreen_timeout_)
+    HideBlankWindow();
 }
 
 void Controller::BlankWindowGrabEnable(bool grab)
@@ -325,41 +358,29 @@ void Controller::BlankWindowGrabEnable(bool grab)
 
   if (grab)
   {
-    for (auto const& shield : shields_)
+    if (!primary_shield_.IsValid())
     {
-      shield->UnGrabPointer();
-      shield->UnGrabKeyboard();
+      blank_window_->EnableInputWindow(true);
+      blank_window_->GrabPointer();
+      blank_window_->GrabKeyboard();
     }
 
-    blank_window_->EnableInputWindow(true);
-    blank_window_->GrabPointer();
-    blank_window_->GrabKeyboard();
+    input::Monitor::Get().RegisterClient(input::Events::INPUT, sigc::mem_fun(this, &Controller::OnBlankWindowInputEvent));
     nux::GetWindowCompositor().SetAlwaysOnFrontWindow(blank_window_.GetPointer());
-
-    blank_window_->mouse_move.connect([this](int, int, int dx, int dy, unsigned long, unsigned long) {
-      if ((dx || dy) && !lockscreen_timeout_) HideBlankWindow();
-    });
-    blank_window_->key_down.connect([this] (unsigned long et, unsigned long k, unsigned long s, const char* c, unsigned short kc) {
-      if (prompt_view_.GetPointer() && prompt_view_->focus_view())
-        prompt_view_->focus_view()->key_down.emit(et, k, s, c, kc);
-      if (!lockscreen_timeout_) HideBlankWindow();
-    });
-    blank_window_->mouse_down.connect([this] (int, int, unsigned long, unsigned long) {
-      if (!lockscreen_timeout_) HideBlankWindow();
-    });
   }
   else
   {
-    blank_window_->UnGrabPointer();
-    blank_window_->UnGrabKeyboard();
+    input::Monitor::Get().UnregisterClient(sigc::mem_fun(this, &Controller::OnBlankWindowInputEvent));
 
-    for (auto const& shield : shields_)
+    if (primary_shield_.IsValid())
     {
-      if (!shield->primary())
-        continue;
-
-      shield->GrabPointer();
-      shield->GrabKeyboard();
+      primary_shield_->GrabPointer();
+      primary_shield_->GrabKeyboard();
+    }
+    else
+    {
+      blank_window_->UnGrabPointer();
+      blank_window_->UnGrabKeyboard();
     }
   }
 }
@@ -382,6 +403,7 @@ void Controller::OnLockRequested(bool prompt)
   if (prompt)
   {
     EnsureBlankWindow();
+    BlankWindowGrabEnable(true);
     blank_window_->SetOpacity(1.0);
   }
 
@@ -462,7 +484,8 @@ void Controller::OnScreenSaverActivationRequest(bool activate)
 
 void Controller::LockScreen()
 {
-  indicators_ = std::make_shared<indicator::LockScreenDBusIndicators>();
+  menu_manager_ = std::make_shared<menu::Manager>(std::make_shared<indicator::LockScreenDBusIndicators>(), key_grabber_);
+  menu_manager_->Indicators()->icon_paths_changed.clear(); // Ignore custom icon themes for lockscreen, see bug #1635625
   upstart_wrapper_->Emit("desktop-lock");
 
   accelerator_controller_ = std::make_shared<AcceleratorController>(key_grabber_);
@@ -536,6 +559,36 @@ bool Controller::HasOpenMenu() const
   return primary_shield_.IsValid() ? primary_shield_->IsIndicatorOpen() : false;
 }
 
+void Controller::InhibitPaint()
+{
+  buffer_cleared_ = false;
+  is_paint_inhibited_ = true;
+}
+
+void Controller::UninhibitPaint()
+{
+  if (!is_paint_inhibited_)
+    return;
+
+  buffer_cleared_ = true;
+  is_paint_inhibited_ = false;
+  SyncInhibitor();
+}
+
+bool Controller::IsPaintInhibited() const
+{
+  return is_paint_inhibited_;
+}
+
+void Controller::MarkBufferHasCleared()
+{
+  if (buffer_cleared_)
+    return;
+
+  buffer_cleared_ = true;
+  SyncInhibitor();
+}
+
 void Controller::SyncInhibitor()
 {
   bool locked = IsLocked() && primary_shield_.IsValid() && primary_shield_->GetOpacity() == 1.0f;
@@ -546,7 +599,7 @@ void Controller::SyncInhibitor()
 
   if (inhibit)
     suspend_inhibitor_manager_->Inhibit("Unity needs to lock the screen");
-  else
+  else if (buffer_cleared_)
     suspend_inhibitor_manager_->Uninhibit();
 }
 

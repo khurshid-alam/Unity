@@ -38,7 +38,6 @@ const unsigned MAX_GRAB_WAIT = 100;
 }
 
 BaseShield::BaseShield(session::Manager::Ptr const& session,
-                       indicator::Indicators::Ptr const& indicators,
                        Accelerators::Ptr const& accelerators,
                        nux::ObjectPtr<AbstractUserPromptView> const& prompt_view,
                        int monitor_num, bool is_primary)
@@ -47,7 +46,6 @@ BaseShield::BaseShield(session::Manager::Ptr const& session,
   , monitor(monitor_num)
   , scale(1.0)
   , session_manager_(session)
-  , indicators_(indicators)
   , accelerators_(accelerators)
   , prompt_view_(prompt_view)
   , bg_settings_(std::make_shared<BackgroundSettings>())
@@ -83,17 +81,25 @@ BaseShield::BaseShield(session::Manager::Ptr const& session,
     background_layer_.reset();
     UpdateBackgroundTexture();
   });
-
-  mouse_move.connect([this] (int x, int y, int, int, unsigned long, unsigned long) {
-    auto const& abs_geo = GetAbsoluteGeometry();
-    grab_motion.emit(abs_geo.x + x, abs_geo.y + y);
-  });
 }
 
 bool BaseShield::HasGrab() const
 {
   auto& wc = nux::GetWindowCompositor();
   return (wc.GetPointerGrabArea() == this && wc.GetKeyboardGrabArea() == this);
+}
+
+nux::Area* BaseShield::FindKeyFocusArea(unsigned etype, unsigned long keysym, unsigned long modifiers)
+{
+  if (primary && prompt_view_)
+  {
+    auto* focus_view = prompt_view_->focus_view();
+
+    if (focus_view && focus_view->GetInputEventSensitivity())
+      return focus_view;
+  }
+
+  return nullptr;
 }
 
 nux::Area* BaseShield::FindAreaUnderMouse(nux::Point const& mouse, nux::NuxEventType event_type)
@@ -139,6 +145,7 @@ void BaseShield::UpdateBackgroundTexture()
   {
     auto background_texture = bg_settings_->GetBackgroundTexture(monitor);
     background_layer_.reset(new nux::TextureLayer(background_texture->GetDeviceTexture(), nux::TexCoordXForm(), nux::color::White, true));
+    background_layer_->SetGeometry(monitor_geo);
     SetBackgroundLayer(background_layer_.get());
   }
 }

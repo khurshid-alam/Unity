@@ -77,6 +77,8 @@ const std::string SUPPRESS_DIALOGS_KEY = "suppress-logout-restart-shutdown";
 
 const std::string GNOME_LOCKDOWN_OPTIONS = "org.gnome.desktop.lockdown";
 const std::string DISABLE_LOCKSCREEN_KEY = "disable-lock-screen";
+
+GDBusProxyFlags DEFAULT_CALL_FLAGS = static_cast<GDBusProxyFlags>(G_DBUS_PROXY_FLAGS_DO_NOT_LOAD_PROPERTIES|G_DBUS_PROXY_FLAGS_DO_NOT_CONNECT_SIGNALS|G_DBUS_PROXY_FLAGS_DO_NOT_AUTO_START_AT_CONSTRUCTION);
 }
 
 GnomeManager::Impl::Impl(GnomeManager* manager, bool test_mode)
@@ -99,38 +101,45 @@ GnomeManager::Impl::Impl(GnomeManager* manager, bool test_mode)
   });
 
   {
-    const char* session_id = test_mode_ ? "id0" : g_getenv("XDG_SESSION_ID");
+    std::string session_id = test_mode_ ? "id0" : glib::gchar_to_string(g_getenv("XDG_SESSION_ID"));
 
-    login_proxy_ = std::make_shared<glib::DBusProxy>(test_mode_ ? testing::DBUS_NAME : "org.freedesktop.login1",
-                                                     "/org/freedesktop/login1/session/" + glib::gchar_to_string(session_id),
-                                                     "org.freedesktop.login1.Session",
-                                                     test_mode_ ? G_BUS_TYPE_SESSION : G_BUS_TYPE_SYSTEM,
-                                                     G_DBUS_PROXY_FLAGS_GET_INVALIDATED_PROPERTIES);
+    if (!session_id.empty())
+    {
+      CallLogindMethod("GetSession", g_variant_new("(s)", session_id.c_str()), [this, session_id] (GVariant* variant, glib::Error const& err) {
+        std::string session_path;
 
-    login_proxy_->Connect("Lock", [this](GVariant*){
-      manager_->PromptLockScreen();
-    });
+        if (!err && variant)
+          session_path = glib::Variant(variant).GetObjectPath();
 
-    login_proxy_->Connect("Unlock", [this](GVariant*){
-      manager_->unlock_requested.emit();
-    });
+        if (session_path.empty())
+          session_path = "/org/freedesktop/login1/session/" + session_id;
 
-    login_proxy_->ConnectProperty("Active", [this] (GVariant* variant) {
-      bool active = glib::Variant(variant).GetBool();
-      manager_->is_session_active.changed.emit(active);
-      if (active)
-        manager_->screensaver_requested.emit(false);
-    });
+        SetupLogin1Proxy(session_path);
+      });
+    }
+    else
+    {
+      auto proxy = std::make_shared<glib::DBusProxy>("org.freedesktop.login1",
+                                                     "/org/freedesktop/login1/user/self",
+                                                     "org.freedesktop.login1.User",
+                                                     G_BUS_TYPE_SYSTEM);
 
-    manager_->is_session_active.SetGetterFunction([this] {
-      return login_proxy_->GetProperty("Active").GetBool();
-    });
+      proxy->GetProperty("Display", [this, proxy] (GVariant *variant) {
+        if (!variant || g_variant_n_children(variant) < 2)
+          return;
+
+        glib::Variant tmp(g_variant_get_child_value(variant, 1), glib::StealRef());
+        SetupLogin1Proxy(tmp.GetObjectPath());
+      }, cancellable_);
+    }
   }
 
   {
     presence_proxy_ = std::make_shared<glib::DBusProxy>(test_mode_ ? testing::DBUS_NAME : "org.gnome.SessionManager",
                                                         "/org/gnome/SessionManager/Presence",
-                                                        "org.gnome.SessionManager.Presence");
+                                                        "org.gnome.SessionManager.Presence",
+                                                        G_BUS_TYPE_SESSION,
+                                                        G_DBUS_PROXY_FLAGS_DO_NOT_LOAD_PROPERTIES);
 
     presence_proxy_->Connect("StatusChanged", [this](GVariant* variant) {
       enum class PresenceStatus : unsigned
@@ -166,7 +175,8 @@ GnomeManager::Impl::Impl(GnomeManager* manager, bool test_mode)
     dm_seat_proxy_ = std::make_shared<glib::DBusProxy>("org.freedesktop.Accounts",
                                                        ("/org/freedesktop/Accounts/User" + std::to_string(getuid())).c_str(),
                                                        "org.freedesktop.Accounts.User",
-                                                       G_BUS_TYPE_SYSTEM);
+                                                       G_BUS_TYPE_SYSTEM,
+                                                       G_DBUS_PROXY_FLAGS_DO_NOT_CONNECT_SIGNALS);
   }
 
   CallLogindMethod("CanHibernate", nullptr, [this] (GVariant* variant, glib::Error const& err) {
@@ -214,6 +224,34 @@ GnomeManager::Impl::~Impl()
 {
   CancelAction();
   ClosedDialog();
+}
+
+void GnomeManager::Impl::SetupLogin1Proxy(std::string const& session_path)
+{
+  login_proxy_ = std::make_shared<glib::DBusProxy>(test_mode_ ? testing::DBUS_NAME : "org.freedesktop.login1",
+                                                   session_path,
+                                                   "org.freedesktop.login1.Session",
+                                                   test_mode_ ? G_BUS_TYPE_SESSION : G_BUS_TYPE_SYSTEM,
+                                                   G_DBUS_PROXY_FLAGS_GET_INVALIDATED_PROPERTIES);
+
+  login_proxy_->Connect("Lock", [this](GVariant*){
+    manager_->PromptLockScreen();
+  });
+
+  login_proxy_->Connect("Unlock", [this](GVariant*){
+    manager_->unlock_requested.emit();
+  });
+
+  login_proxy_->ConnectProperty("Active", [this] (GVariant* variant) {
+    bool active = glib::Variant(variant).GetBool();
+    manager_->is_session_active.changed.emit(active);
+    if (active)
+      manager_->screensaver_requested.emit(false);
+  });
+
+  manager_->is_session_active.SetGetterFunction([this] {
+    return login_proxy_->GetProperty("Active").GetBool();
+  });
 }
 
 bool GnomeManager::Impl::InteractiveMode()
@@ -374,7 +412,8 @@ void GnomeManager::Impl::CallGnomeSessionMethod(std::string const& method, GVari
                                                 glib::DBusProxy::CallFinishedCallback const& cb)
 {
   auto proxy = std::make_shared<glib::DBusProxy>(test_mode_ ? testing::DBUS_NAME : "org.gnome.SessionManager",
-                                                 "/org/gnome/SessionManager", "org.gnome.SessionManager");
+                                                 "/org/gnome/SessionManager", "org.gnome.SessionManager",
+                                                 G_BUS_TYPE_SESSION, DEFAULT_CALL_FLAGS);
 
   // By passing the proxy to the lambda we ensure that it will be smartly handled
   proxy->CallBegin(method, parameters, [proxy, cb] (GVariant* ret, glib::Error const& e) {
@@ -385,14 +424,15 @@ void GnomeManager::Impl::CallGnomeSessionMethod(std::string const& method, GVari
 
     if (cb)
       cb(ret, e);
-  });
+  }, cancellable_);
 }
 
 void GnomeManager::Impl::CallUPowerMethod(std::string const& method, glib::DBusProxy::ReplyCallback const& cb)
 {
   auto proxy = std::make_shared<glib::DBusProxy>(test_mode_ ? testing::DBUS_NAME : "org.freedesktop.UPower",
                                                  "/org/freedesktop/UPower", "org.freedesktop.UPower",
-                                                 test_mode_ ? G_BUS_TYPE_SESSION : G_BUS_TYPE_SYSTEM);
+                                                 test_mode_ ? G_BUS_TYPE_SESSION : G_BUS_TYPE_SYSTEM,
+                                                 DEFAULT_CALL_FLAGS);
 
   proxy->CallBegin(method, nullptr, [proxy, cb] (GVariant *ret, glib::Error const& e) {
     if (e)
@@ -403,7 +443,7 @@ void GnomeManager::Impl::CallUPowerMethod(std::string const& method, glib::DBusP
     {
       cb(ret);
     }
-  });
+  }, cancellable_);
 }
 
 void GnomeManager::Impl::CallLogindMethod(std::string const& method, GVariant* parameters, glib::DBusProxy::CallFinishedCallback const& cb)
@@ -411,7 +451,8 @@ void GnomeManager::Impl::CallLogindMethod(std::string const& method, GVariant* p
   auto proxy = std::make_shared<glib::DBusProxy>(test_mode_ ? testing::DBUS_NAME : "org.freedesktop.login1",
                                                  "/org/freedesktop/login1",
                                                  "org.freedesktop.login1.Manager",
-                                                 test_mode_ ? G_BUS_TYPE_SESSION : G_BUS_TYPE_SYSTEM);
+                                                 test_mode_ ? G_BUS_TYPE_SESSION : G_BUS_TYPE_SYSTEM,
+                                                 DEFAULT_CALL_FLAGS);
 
   // By passing the proxy to the lambda we ensure that it will be smartly handled
   proxy->CallBegin(method, parameters, [proxy, cb, method] (GVariant* ret, glib::Error const& e) {
@@ -424,7 +465,7 @@ void GnomeManager::Impl::CallLogindMethod(std::string const& method, GVariant* p
     {
       cb(ret, e);
     }
-  });
+  }, cancellable_);
 }
 
 void GnomeManager::Impl::CallConsoleKitMethod(std::string const& method, GVariant* parameters)
@@ -432,7 +473,8 @@ void GnomeManager::Impl::CallConsoleKitMethod(std::string const& method, GVarian
   auto proxy = std::make_shared<glib::DBusProxy>(test_mode_ ? testing::DBUS_NAME : "org.freedesktop.ConsoleKit",
                                                  "/org/freedesktop/ConsoleKit/Manager",
                                                  "org.freedesktop.ConsoleKit.Manager",
-                                                 test_mode_ ? G_BUS_TYPE_SESSION : G_BUS_TYPE_SYSTEM);
+                                                 test_mode_ ? G_BUS_TYPE_SESSION : G_BUS_TYPE_SYSTEM,
+                                                 DEFAULT_CALL_FLAGS);
 
   // By passing the proxy to the lambda we ensure that it will be smartly handled
   proxy->CallBegin(method, parameters, [this, proxy] (GVariant*, glib::Error const& e) {
@@ -440,7 +482,7 @@ void GnomeManager::Impl::CallConsoleKitMethod(std::string const& method, GVarian
     {
       LOG_ERROR(logger) << "Fallback call failed: " << e.Message();
     }
-  });
+  }, cancellable_);
 }
 
 void GnomeManager::Impl::CallDisplayManagerSeatMethod(std::string const& method, GVariant* parameters)
@@ -450,13 +492,14 @@ void GnomeManager::Impl::CallDisplayManagerSeatMethod(std::string const& method,
   auto proxy = std::make_shared<glib::DBusProxy>(test_mode_ ? testing::DBUS_NAME : "org.freedesktop.DisplayManager",
                                                  glib::gchar_to_string(xdg_seat_path),
                                                  "org.freedesktop.DisplayManager.Seat",
-                                                 test_mode_ ? G_BUS_TYPE_SESSION : G_BUS_TYPE_SYSTEM);
+                                                 test_mode_ ? G_BUS_TYPE_SESSION : G_BUS_TYPE_SYSTEM,
+                                                 DEFAULT_CALL_FLAGS);
   proxy->CallBegin(method, parameters, [this, proxy] (GVariant*, glib::Error const& e) {
     if (e)
     {
       LOG_ERROR(logger) << "DisplayManager Seat call failed: " << e.Message();
     }
-  });
+  }, cancellable_);
 }
 
 void GnomeManager::Impl::LockScreen(bool prompt)
@@ -509,7 +552,7 @@ bool GnomeManager::Impl::HasInhibitors()
   glib::Variant inhibitors(g_dbus_connection_call_sync(bus, test_mode_ ? testing::DBUS_NAME.c_str() : "org.gnome.SessionManager",
                                                        "/org/gnome/SessionManager", "org.gnome.SessionManager",
                                                        "IsInhibited", g_variant_new("(u)", Inhibited::LOGOUT), nullptr,
-                                                       G_DBUS_CALL_FLAGS_NONE, 500, nullptr, &error));
+                                                       G_DBUS_CALL_FLAGS_NONE, 500, cancellable_, &error));
 
   if (error)
   {
@@ -532,11 +575,51 @@ bool GnomeManager::Impl::IsUserInGroup(std::string const& user_name, std::string
   auto group = getgrnam(group_name.c_str());
 
   if (group && group->gr_mem)
+  {
     for (int i = 0; group->gr_mem[i]; ++i)
+    {
       if (g_strcmp0(group->gr_mem[i], user_name.c_str()) == 0)
         return true;
+    }
+  }
 
   return false;
+}
+
+bool GnomeManager::Impl::AutomaticLogin()
+{
+  glib::Error error;
+  glib::Object<GDBusConnection> bus(g_bus_get_sync(G_BUS_TYPE_SYSTEM, nullptr, &error));
+
+  if (error)
+  {
+    LOG_ERROR(logger) << "Impossible to get the system bus to know if auto-login is enabled: " << error;
+    return false;
+  }
+
+  glib::Variant user_path(g_dbus_connection_call_sync(bus, "org.freedesktop.Accounts",
+                                                      "/org/freedesktop/Accounts", "org.freedesktop.Accounts",
+                                                      "FindUserByName", g_variant_new("(s)",g_get_user_name()), nullptr,
+                                                      G_DBUS_CALL_FLAGS_NONE, 500, cancellable_, &error));
+
+  if (error)
+  {
+    LOG_ERROR(logger) << "Impossible to get the user path: " << error;
+    return false;
+  }
+
+  glib::Variant autologin(g_dbus_connection_call_sync(bus, "org.freedesktop.Accounts",
+                                                      user_path.GetObjectPath().c_str(), "org.freedesktop.DBus.Properties",
+                                                      "Get", g_variant_new("(ss)", "org.freedesktop.Accounts.User", "AutomaticLogin"), nullptr,
+                                                      G_DBUS_CALL_FLAGS_NONE, 500, cancellable_, &error));
+
+  if (error)
+  {
+    LOG_ERROR(logger) << "Impossible to get the AutomaticLogin property: " << error;
+    return false;
+  }
+
+  return autologin.GetBool();
 }
 
 // Public implementation
@@ -575,6 +658,11 @@ std::string GnomeManager::HostName() const
 void GnomeManager::UserIconFile(std::function<void(std::string const&)> const& callback) const
 {
   impl_->UserIconFile(callback);
+}
+
+bool GnomeManager::AutomaticLogin() const
+{
+  return impl_->AutomaticLogin();
 }
 
 void GnomeManager::ScreenSaverActivate()

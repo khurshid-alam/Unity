@@ -58,7 +58,7 @@ struct LoadResult
   }
 };
 
-void CheckResults(std::vector<LoadResult> const& results, unsigned max_wait = 500)
+void CheckResults(std::vector<LoadResult> const& results, unsigned max_wait = 1500)
 {
   Utils::WaitUntilMSec([&results] {
     bool got_all = true;
@@ -107,7 +107,7 @@ TEST(TestThumbnailGenerator, TestGetOneFileThumbnail)
   thumb->ready.connect(sigc::mem_fun(load_result, &LoadResult::ThumbnailReady));
   thumb->error.connect(sigc::mem_fun(load_result, &LoadResult::ThumbnailFailed));
 
-  Utils::WaitUntilMSec(load_result.got_callback);
+  Utils::WaitUntilMSec(load_result.got_callback, 1500);
 
   EXPECT_TRUE(load_result.succeeded);
   glib::Object<GIcon> icon(g_icon_new_for_string(load_result.return_string.c_str(), NULL));
@@ -149,7 +149,7 @@ TEST(TestThumbnailGenerator, TestGetManyFileThumbnail)
     results[i].cancelled = true;
   }
 
-  CheckResults(results, 15000);
+  CheckResults(results, 30000);
 }
 
 
@@ -164,7 +164,7 @@ TEST(TestThumbnailGenerator, TestGetOneGIcon)
   thumb->ready.connect(sigc::mem_fun(load_result, &LoadResult::ThumbnailReady));
   thumb->error.connect(sigc::mem_fun(load_result, &LoadResult::ThumbnailFailed));
 
-  Utils::WaitUntilMSec(load_result.got_callback);
+  Utils::WaitUntilMSec(load_result.got_callback, 1500);
 
   EXPECT_TRUE(load_result.succeeded);
   glib::Object<GIcon> icon(g_icon_new_for_string(load_result.return_string.c_str(), NULL));
@@ -206,7 +206,7 @@ TEST(TestThumbnailGenerator, TestGetManyGIcon)
     results[i].cancelled = true;
   }
 
-  CheckResults(results);
+  CheckResults(results, 3000);
 }
 
 

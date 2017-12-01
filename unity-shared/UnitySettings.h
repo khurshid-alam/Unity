@@ -60,6 +60,7 @@ public:
   int LauncherSize(int mointor) const;
 
   nux::Property<bool> low_gfx;
+  nux::Property<bool> supports_3d;
   nux::RWProperty<FormFactor> form_factor;
   nux::Property<bool> is_standalone;
   nux::ROProperty<DesktopType> desktop_type;
@@ -76,7 +77,6 @@ public:
   nux::Property<bool> gestures_windows_drag_pinch;
 
   sigc::signal<void> dpi_changed;
-  sigc::signal<void> low_gfx_changed;
   sigc::signal<void> gestures_changed;
 
 private:

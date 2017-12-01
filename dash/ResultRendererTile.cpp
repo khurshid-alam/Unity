@@ -273,7 +273,7 @@ void ResultRendererTile::LoadIcon(Result const& row)
   std::string const& icon_hint = row.icon_hint;
   std::string const& icon_name = !icon_hint.empty() ? icon_hint : DEFAULT_GICON;
 
-  glib::Object<GIcon> icon(g_icon_new_for_string(icon_name.c_str(), NULL));
+  glib::Object<GIcon> icon(g_icon_new_for_string(icon_name.c_str(), nullptr));
   TextureContainer* container = row.renderer<TextureContainer*>();
 
   if (container)

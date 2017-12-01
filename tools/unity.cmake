@@ -29,6 +29,9 @@ import sys
 import time
 
 DEFAULT_COMMAND = "compiz --replace"
+COMPIZ_CONFIG_PROFILE = "ubuntu"
+UNITY_DEFAULT_PROFILE = "unity"
+UNITY_LOWGFX_PROFILE = UNITY_DEFAULT_PROFILE + "-lowgfx"
 home_dir = os.path.expanduser("~%s" % os.getenv("SUDO_USER"))
 supported_prefix = "/usr/local"
 
@@ -57,13 +60,26 @@ well_known_local_path = ("%s/share/locale/*/LC_MESSAGES/*unity*" % supported_pre
 def set_unity_env ():
     '''set variable environnement for unity to run'''
 
-    os.environ['COMPIZ_CONFIG_PROFILE'] = 'ubuntu'
+    compiz_config_profile = UNITY_DEFAULT_PROFILE
+    os.environ['COMPIZ_CONFIG_PROFILE'] = COMPIZ_CONFIG_PROFILE
 
     try:
-      if subprocess.call('/usr/lib/nux/unity_support_test -f'.split()) > 0:
-        os.environ['COMPIZ_CONFIG_PROFILE'] = 'ubuntu-lowgfx'
+        if subprocess.call('/usr/lib/nux/unity_support_test -f'.split()) > 0:
+            compiz_config_profile = UNITY_LOWGFX_PROFILE
     except:
-      pass
+        pass
+
+    try:
+        if subprocess.check_output('gsettings get com.canonical.Unity lowgfx'.split()) == b'true\n':
+            compiz_config_profile = UNITY_LOWGFX_PROFILE
+    except:
+        pass
+
+    try:
+        subprocess.call('@UNITY_LIBDIR@/compiz-config-profile-setter {}'.format(
+            compiz_config_profile).split())
+    except:
+        pass
 
     if not 'DISPLAY' in os.environ:
         # take an optimistic chance and warn about it :)

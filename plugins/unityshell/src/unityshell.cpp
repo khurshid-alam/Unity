@@ -197,6 +197,7 @@ UnityScreen::UnityScreen(CompScreen* screen)
   , menus_(std::make_shared<menu::Manager>(std::make_shared<indicator::DBusIndicators>(), std::make_shared<key::GnomeGrabber>()))
   , deco_manager_(std::make_shared<decoration::Manager>(menus_))
   , debugger_(this)
+  , session_(std::make_shared<session::GnomeManager>())
   , needsRelayout(false)
   , super_keypressed_(false)
   , newFocusedWindow(nullptr)
@@ -291,23 +292,22 @@ UnityScreen::UnityScreen(CompScreen* screen)
     }
   }
 
-    //In case of software rendering then enable lowgfx mode.
+  //In case of software rendering then enable lowgfx mode.
+  std::string lowgfx_env = glib::gchar_to_string(getenv("UNITY_LOW_GFX_MODE"));
   std::string renderer = ANSI_TO_TCHAR(NUX_REINTERPRET_CAST(const char *, glGetString(GL_RENDERER)));
-
   if (renderer.find("Software Rasterizer") != std::string::npos ||
       renderer.find("Mesa X11") != std::string::npos ||
       renderer.find("llvmpipe") != std::string::npos ||
       renderer.find("softpipe") != std::string::npos ||
-      (getenv("UNITY_LOW_GFX_MODE") != NULL && atoi(getenv("UNITY_LOW_GFX_MODE")) == 1) ||
-       optionGetLowGraphicsMode())
-    {
-      unity_settings_.low_gfx = true;
-    }
-
-  if (getenv("UNITY_LOW_GFX_MODE") != NULL && atoi(getenv("UNITY_LOW_GFX_MODE")) == 0)
+      atoi(lowgfx_env.c_str()) == 1)
   {
-    unity_settings_.low_gfx = false;
+    if (lowgfx_env.empty() || atoi(lowgfx_env.c_str()) != 0)
+      unity_settings_.supports_3d = false;
   }
+
+  Settings::Instance().low_gfx.changed.connect(sigc::track_obj([this] (bool low_gfx) {
+    BackgroundEffectHelper::blur_type = low_gfx ? BLUR_NONE : (unity::BlurType) optionGetDashBlurExperimental();
+  }, *this));
 #endif
 
   if (!failed)
@@ -383,7 +383,6 @@ UnityScreen::UnityScreen(CompScreen* screen)
      optionSetAutohideAnimationNotify(boost::bind(&UnityScreen::optionChanged, this, _1, _2));
      optionSetDashBlurExperimentalNotify(boost::bind(&UnityScreen::optionChanged, this, _1, _2));
      optionSetShortcutOverlayNotify(boost::bind(&UnityScreen::optionChanged, this, _1, _2));
-     optionSetLowGraphicsModeNotify(boost::bind(&UnityScreen::optionChanged, this, _1, _2));
      optionSetShowLauncherInitiate(boost::bind(&UnityScreen::showLauncherKeyInitiate, this, _1, _2, _3));
      optionSetShowLauncherTerminate(boost::bind(&UnityScreen::showLauncherKeyTerminate, this, _1, _2, _3));
      optionSetKeyboardFocusInitiate(boost::bind(&UnityScreen::setKeyboardFocusKeyInitiate, this, _1, _2, _3));
@@ -477,9 +476,10 @@ UnityScreen::UnityScreen(CompScreen* screen)
 
     Introspectable::AddChild(deco_manager_.get());
     auto const& deco_style = decoration::Style::Get();
-    auto deco_style_cb = sigc::hide(sigc::mem_fun(this, &UnityScreen::OnDecorationStyleChanged));
+    auto deco_style_cb = sigc::hide(sigc::mem_fun(this, &UnityScreen::UpdateDecorationStyle));
     deco_style->theme.changed.connect(deco_style_cb);
     deco_style->title_font.changed.connect(deco_style_cb);
+    UpdateDecorationStyle();
 
     minimize_speed_controller_.DurationChanged.connect(
       sigc::mem_fun(this, &UnityScreen::OnMinimizeDurationChanged)
@@ -515,7 +515,10 @@ UnityScreen::~UnityScreen()
   unity_a11y_finalize();
   QuicklistManager::Destroy();
   decoration::DataPool::Reset();
-  SaveLockStamp(false);
+
+  if (!session_->AutomaticLogin())
+    SaveLockStamp(false);
+
   reset_glib_logging();
 
   screen->addSupportedAtomsSetEnabled(this, false);
@@ -583,12 +586,14 @@ void UnityScreen::OnInitiateSpread()
 
       for (auto const& swin : sScreen->getWindows())
       {
-        if (filtered_windows.find(swin->window->id()) != filtered_windows.end())
+        if (!swin->window || filtered_windows.find(swin->window->id()) != filtered_windows.end())
           continue;
 
-        auto* uwin = UnityWindow::get(swin->window);
-        uwin->OnTerminateSpread();
-        fake_decorated_windows_.erase(uwin);
+        if (UnityWindow* uwin = UnityWindow::get(swin->window))
+        {
+          uwin->OnTerminateSpread();
+          fake_decorated_windows_.erase(uwin);
+        }
       }
 
       for (auto xid : filtered_windows)
@@ -602,6 +607,9 @@ void UnityScreen::OnInitiateSpread()
 
   for (auto const& swin : sScreen->getWindows())
   {
+    if (!swin->window)
+      continue;
+
     auto* uwin = UnityWindow::get(swin->window);
     fake_decorated_windows_.insert(uwin);
     uwin->OnInitiateSpread();
@@ -613,7 +621,13 @@ void UnityScreen::OnTerminateSpread()
   spread_widgets_.reset();
 
   for (auto const& swin : sScreen->getWindows())
-    UnityWindow::get(swin->window)->OnTerminateSpread();
+  {
+    if (!swin->window)
+      continue;
+
+    if (UnityWindow* uwin = UnityWindow::get(swin->window))
+      uwin->OnTerminateSpread();
+  }
 
   fake_decorated_windows_.clear();
 }
@@ -845,17 +859,28 @@ UnityWindow::updateIconPos(int &wx, int &wy, int x, int y, float width, float he
   wy = y + (last_bound.height - height) / 2;
 }
 
-void UnityScreen::OnDecorationStyleChanged()
+void UnityScreen::UpdateDecorationStyle()
 {
   for (UnityWindow* uwin : fake_decorated_windows_)
     uwin->CleanupCachedTextures();
 
-  auto const& style = decoration::Style::Get();
-  deco_manager_->shadow_offset = style->ShadowOffset();
-  deco_manager_->active_shadow_color = style->ActiveShadowColor();
-  deco_manager_->active_shadow_radius = style->ActiveShadowRadius();
-  deco_manager_->inactive_shadow_color = style->InactiveShadowColor();
-  deco_manager_->inactive_shadow_radius = style->InactiveShadowRadius();
+  if (optionGetOverrideDecorationTheme())
+  {
+    deco_manager_->active_shadow_color = NuxColorFromCompizColor(optionGetActiveShadowColor());
+    deco_manager_->inactive_shadow_color = NuxColorFromCompizColor(optionGetInactiveShadowColor());
+    deco_manager_->active_shadow_radius = optionGetActiveShadowRadius();
+    deco_manager_->inactive_shadow_radius = optionGetInactiveShadowRadius();
+    deco_manager_->shadow_offset = nux::Point(optionGetShadowXOffset(), optionGetShadowYOffset());
+  }
+  else
+  {
+    auto const& style = decoration::Style::Get();
+    deco_manager_->shadow_offset = style->ShadowOffset();
+    deco_manager_->active_shadow_color = style->ActiveShadowColor();
+    deco_manager_->active_shadow_radius = style->ActiveShadowRadius();
+    deco_manager_->inactive_shadow_color = style->InactiveShadowColor();
+    deco_manager_->inactive_shadow_radius = style->InactiveShadowRadius();
+  }
 }
 
 void UnityScreen::DamageBlurUpdateRegion(nux::Geometry const& blur_update)
@@ -863,7 +888,7 @@ void UnityScreen::DamageBlurUpdateRegion(nux::Geometry const& blur_update)
   cScreen->damageRegion(CompRegionFromNuxGeo(blur_update));
 }
 
-void UnityScreen::paintDisplay()
+void UnityScreen::paintOutput()
 {
   CompOutput *output = last_output_;
 
@@ -1471,6 +1496,13 @@ bool UnityScreen::glPaintOutput(const GLScreenPaintAttrib& attrib,
                                 CompOutput* output,
                                 unsigned int mask)
 {
+  if (G_UNLIKELY(lockscreen_controller_->IsPaintInhibited()))
+  {
+    CHECKGL(glClearColor(0.0f, 0.0f, 0.0f, 1.0f));
+    CHECKGL(glClear(GL_COLOR_BUFFER_BIT));
+    return true;
+  }
+
   bool ret;
 
   /*
@@ -1504,7 +1536,7 @@ bool UnityScreen::glPaintOutput(const GLScreenPaintAttrib& attrib,
     doShellRepaint = false;
 
   if (doShellRepaint)
-    paintDisplay();
+    paintOutput();
 
   return ret;
 }
@@ -1667,6 +1699,11 @@ void UnityScreen::preparePaint(int ms)
 
 void UnityScreen::donePaint()
 {
+  if (G_UNLIKELY(lockscreen_controller_->IsPaintInhibited()))
+  {
+    lockscreen_controller_->MarkBufferHasCleared();
+  }
+
   /*
    * It's only safe to clear the draw list if drawing actually occurred
    * (i.e. the shell was not obscured behind a fullscreen window).
@@ -2041,13 +2078,6 @@ void UnityScreen::handleEvent(XEvent* event)
     }
     case MapRequest:
       ShowdesktopHandler::InhibitLeaveShowdesktopMode (event->xmaprequest.window);
-      break;
-    case PropertyNotify:
-      if (bghash_ && event->xproperty.window == GDK_ROOT_WINDOW() &&
-          event->xproperty.atom == bghash_->ColorAtomId())
-      {
-        bghash_->RefreshColor();
-      }
       break;
     default:
         if (screen->shapeEvent() + ShapeNotify == event->type)
@@ -3104,18 +3134,18 @@ bool UnityWindow::glDraw(const GLMatrix& matrix,
 
   if (uScreen->doShellRepaint && window == uScreen->onboard_)
   {
-    uScreen->paintDisplay();
+    uScreen->paintOutput();
   }
   else if (uScreen->doShellRepaint &&
            window == uScreen->firstWindowAboveShell &&
            !uScreen->forcePaintOnTop() &&
            !uScreen->fullscreenRegion.contains(window->geometry()))
   {
-    uScreen->paintDisplay();
+    uScreen->paintOutput();
   }
   else if (locked && CanBypassLockScreen())
   {
-    uScreen->paintDisplay();
+    uScreen->paintOutput();
   }
 
   enum class DrawPanelShadow
@@ -3598,43 +3628,16 @@ void UnityScreen::optionChanged(CompOption* opt, UnityshellOptions::Options num)
       break;
     }
     case UnityshellOptions::OverrideDecorationTheme:
-      if (optionGetOverrideDecorationTheme())
-      {
-        deco_manager_->active_shadow_color = NuxColorFromCompizColor(optionGetActiveShadowColor());
-        deco_manager_->inactive_shadow_color = NuxColorFromCompizColor(optionGetInactiveShadowColor());
-        deco_manager_->active_shadow_radius = optionGetActiveShadowRadius();
-        deco_manager_->inactive_shadow_radius = optionGetInactiveShadowRadius();
-        deco_manager_->shadow_offset = nux::Point(optionGetShadowXOffset(), optionGetShadowYOffset());
-      }
-      else
-      {
-        OnDecorationStyleChanged();
-      }
-      break;
     case UnityshellOptions::ActiveShadowColor:
-      if (optionGetOverrideDecorationTheme())
-        deco_manager_->active_shadow_color = NuxColorFromCompizColor(optionGetActiveShadowColor());
-      break;
-    case UnityshellOptions::InactiveShadowColor:
-      if (optionGetOverrideDecorationTheme())
-        deco_manager_->inactive_shadow_color = NuxColorFromCompizColor(optionGetInactiveShadowColor());
-      break;
     case UnityshellOptions::ActiveShadowRadius:
-      if (optionGetOverrideDecorationTheme())
-        deco_manager_->active_shadow_radius = optionGetActiveShadowRadius();
-      break;
+    case UnityshellOptions::InactiveShadowColor:
     case UnityshellOptions::InactiveShadowRadius:
-      if (optionGetOverrideDecorationTheme())
-        deco_manager_->inactive_shadow_radius = optionGetInactiveShadowRadius();
-      break;
     case UnityshellOptions::ShadowXOffset:
-      if (optionGetOverrideDecorationTheme())
-        deco_manager_->shadow_offset = nux::Point(optionGetShadowXOffset(), optionGetShadowYOffset());
-      break;
     case UnityshellOptions::ShadowYOffset:
-      if (optionGetOverrideDecorationTheme())
-        deco_manager_->shadow_offset = nux::Point(optionGetShadowXOffset(), optionGetShadowYOffset());
+    {
+      UpdateDecorationStyle();
       break;
+    }
     case UnityshellOptions::LauncherHideMode:
     {
       launcher_options->hide_mode = (launcher::LauncherHideMode) optionGetLauncherHideMode();
@@ -3736,14 +3739,6 @@ void UnityScreen::optionChanged(CompOption* opt, UnityshellOptions::Options num)
     case UnityshellOptions::ShortcutOverlay:
       shortcut_controller_->SetEnabled(optionGetShortcutOverlay());
       break;
-    case UnityshellOptions::LowGraphicsMode:
-      if (optionGetLowGraphicsMode())
-          BackgroundEffectHelper::blur_type = BLUR_NONE;
-      else
-          BackgroundEffectHelper::blur_type = (unity::BlurType)optionGetDashBlurExperimental();
-
-      unity::Settings::Instance().low_gfx = optionGetLowGraphicsMode();
-      break;
     case UnityshellOptions::DecayRate:
       launcher_options->edge_decay_rate = optionGetDecayRate() * 100;
       break;
@@ -3843,6 +3838,12 @@ void UnityScreen::outputChangeNotify()
   ScheduleRelayout(500);
 }
 
+void UnityScreen::averageColorChangeNotify(const unsigned short *color)
+{
+  bghash_->UpdateColor(color, nux::animation::Animation::State::Running);
+  screen->averageColorChangeNotify (color);
+}
+
 bool UnityScreen::layoutSlotsAndAssignWindows()
 {
   auto const& scaled_windows = sScreen->getWindows();
@@ -3855,7 +3856,7 @@ bool UnityScreen::layoutSlotsAndAssignWindows()
 
     for (ScaleWindow *sw : scaled_windows)
     {
-      if (sw->window->outputDevice() == static_cast<int>(output.id()))
+      if (sw->window && sw->window->outputDevice() == static_cast<int>(output.id()))
       {
         UnityWindow::get(sw->window)->deco_win_->scaled = true;
         layout_windows.emplace_back(std::make_shared<LayoutWindow>(sw->window->id()));
@@ -3983,6 +3984,8 @@ void UnityScreen::OnScreenLocked()
 
   // We disable the edge barriers, to avoid blocking the mouse pointer during lockscreen
   edge_barriers_->force_disable = true;
+
+  UpdateGesturesSupport();
 }
 
 void UnityScreen::OnScreenUnlocked()
@@ -3999,19 +4002,36 @@ void UnityScreen::OnScreenUnlocked()
     screen->addAction(&action);
 
   edge_barriers_->force_disable = false;
+
+  UpdateGesturesSupport();
+}
+
+std::string UnityScreen::GetLockStampFile() const
+{
+  std::string cache_dir;
+
+  if (session_->AutomaticLogin())
+    cache_dir = DesktopUtilities::GetUserCacheDirectory();
+  else
+    cache_dir = DesktopUtilities::GetUserRuntimeDirectory();
+
+  if (cache_dir.empty())
+    return std::string();
+
+  return cache_dir+local::LOCKED_STAMP;
 }
 
 void UnityScreen::SaveLockStamp(bool save)
 {
-  auto const& cache_dir = DesktopUtilities::GetUserRuntimeDirectory();
+  std::string file_path = GetLockStampFile();
 
-  if (cache_dir.empty())
+  if (file_path.empty())
     return;
 
   if (save)
   {
     glib::Error error;
-    g_file_set_contents((cache_dir+local::LOCKED_STAMP).c_str(), "", 0, &error);
+    g_file_set_contents(file_path.c_str(), "", 0, &error);
 
     if (error)
     {
@@ -4020,7 +4040,7 @@ void UnityScreen::SaveLockStamp(bool save)
   }
   else
   {
-    if (g_unlink((cache_dir+local::LOCKED_STAMP).c_str()) < 0)
+    if (g_unlink(file_path.c_str()) < 0)
     {
       LOG_ERROR(logger) << "Impossible to delete the unity locked stamp file";
     }
@@ -4048,6 +4068,7 @@ void UnityScreen::InitUnityComponents()
   nux::GetWindowCompositor().sigHiddenViewWindow.connect(sigc::mem_fun(this, &UnityScreen::OnViewHidden));
 
   bghash_.reset(new BGHash());
+  bghash_->UpdateColor(screen->averageColor(), nux::animation::Animation::State::Stopped);
   LOG_INFO(logger) << "InitUnityComponents-BGHash " << timer.ElapsedSeconds() << "s";
 
   auto xdnd_collection_window = std::make_shared<XdndCollectionWindowImp>();
@@ -4096,24 +4117,23 @@ void UnityScreen::InitUnityComponents()
   ShowFirstRunHints();
 
   // Setup Session Controller
-  auto session = std::make_shared<session::GnomeManager>();
-  session->lock_requested.connect(sigc::mem_fun(this, &UnityScreen::OnLockScreenRequested));
-  session->prompt_lock_requested.connect(sigc::mem_fun(this, &UnityScreen::OnLockScreenRequested));
-  session->locked.connect(sigc::mem_fun(this, &UnityScreen::OnScreenLocked));
-  session->unlocked.connect(sigc::mem_fun(this, &UnityScreen::OnScreenUnlocked));
-  session_dbus_manager_ = std::make_shared<session::DBusManager>(session);
-  session_controller_ = std::make_shared<session::Controller>(session);
+  session_->lock_requested.connect(sigc::mem_fun(this, &UnityScreen::OnLockScreenRequested));
+  session_->prompt_lock_requested.connect(sigc::mem_fun(this, &UnityScreen::OnLockScreenRequested));
+  session_->locked.connect(sigc::mem_fun(this, &UnityScreen::OnScreenLocked));
+  session_->unlocked.connect(sigc::mem_fun(this, &UnityScreen::OnScreenUnlocked));
+  session_dbus_manager_ = std::make_shared<session::DBusManager>(session_);
+  session_controller_ = std::make_shared<session::Controller>(session_);
   LOG_INFO(logger) << "InitUnityComponents-Session " << timer.ElapsedSeconds() << "s";
   Introspectable::AddChild(session_controller_.get());
 
   // Setup Lockscreen Controller
-  screensaver_dbus_manager_ = std::make_shared<lockscreen::DBusManager>(session);
-  lockscreen_controller_ = std::make_shared<lockscreen::Controller>(screensaver_dbus_manager_, session, menus_->KeyGrabber());
+  screensaver_dbus_manager_ = std::make_shared<lockscreen::DBusManager>(session_);
+  lockscreen_controller_ = std::make_shared<lockscreen::Controller>(screensaver_dbus_manager_, session_, menus_->KeyGrabber());
   UpdateActivateIndicatorsKey();
   LOG_INFO(logger) << "InitUnityComponents-Lockscreen " << timer.ElapsedSeconds() << "s";
 
-  if (g_file_test((DesktopUtilities::GetUserRuntimeDirectory()+local::LOCKED_STAMP).c_str(), G_FILE_TEST_EXISTS))
-    session->PromptLockScreen();
+  if (g_file_test(GetLockStampFile().c_str(), G_FILE_TEST_EXISTS))
+    session_->PromptLockScreen();
 
   auto on_launcher_size_changed = [this] (nux::Area* area, int w, int h) {
     /* The launcher geometry includes 1px used to draw the right/top margin
@@ -4207,9 +4227,11 @@ lockscreen::Controller::Ptr UnityScreen::lockscreen_controller()
 
 void UnityScreen::UpdateGesturesSupport()
 {
-  Settings::Instance().gestures_launcher_drag() ? gestures_sub_launcher_->Activate() : gestures_sub_launcher_->Deactivate();
-  Settings::Instance().gestures_dash_tap() ? gestures_sub_dash_->Activate() : gestures_sub_dash_->Deactivate();
-  Settings::Instance().gestures_windows_drag_pinch() ? gestures_sub_windows_->Activate() : gestures_sub_windows_->Deactivate();
+  auto& s = Settings::Instance();
+  bool locked = lockscreen_controller_ && lockscreen_controller_->IsLocked();
+  (!locked && s.gestures_launcher_drag()) ? gestures_sub_launcher_->Activate() : gestures_sub_launcher_->Deactivate();
+  (!locked && s.gestures_dash_tap()) ? gestures_sub_dash_->Activate() : gestures_sub_dash_->Deactivate();
+  (!locked && s.gestures_windows_drag_pinch()) ? gestures_sub_windows_->Activate() : gestures_sub_windows_->Deactivate();
 }
 
 void UnityScreen::InitGesturesSupport()

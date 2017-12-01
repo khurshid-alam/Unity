@@ -28,6 +28,31 @@
 
 #include <UnityCore/GLibWrapper.h>
 
+namespace unity
+{
+
+bool operator==(ApplicationPtr const& lhs, ApplicationPtr const& rhs)
+{
+  return (lhs.get() == rhs.get() || (lhs && rhs && *lhs == *rhs));
+}
+
+bool operator!=(ApplicationPtr const& lhs, ApplicationPtr const& rhs)
+{
+  return !(lhs == rhs);
+}
+
+bool operator==(ApplicationWindowPtr const& lhs, ApplicationWindowPtr const& rhs)
+{
+  return (lhs.get() == rhs.get() || (lhs && rhs && *lhs == *rhs));
+}
+
+bool operator!=(ApplicationWindowPtr const& lhs, ApplicationWindowPtr const& rhs)
+{
+  return !(lhs == rhs);
+}
+
+}
+
 namespace {
 
 unity::StandaloneWindow::Ptr AddFakeWindowToWM(Window xid, bool mapped)
@@ -56,7 +81,7 @@ struct TestBamfApplication : public testing::Test
 
 TEST_F(TestBamfApplication, GetWindows)
 {
-  ASSERT_EQ(application_.GetWindows().size(), 0);
+  ASSERT_EQ(application_.GetWindows().size(), 0u);
 
   GList* children = nullptr;
   for (int i = 0; i<5; ++i)
@@ -73,7 +98,7 @@ TEST_F(TestBamfApplication, GetWindows)
   AddFakeWindowToWM(3, true);
   AddFakeWindowToWM(4, false);
 
-  EXPECT_EQ(application_.GetWindows().size(), 5);
+  EXPECT_EQ(application_.GetWindows().size(), 5u);
 
   g_list_free_full(children, g_object_unref);
 }

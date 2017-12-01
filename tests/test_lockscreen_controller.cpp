@@ -31,6 +31,7 @@ using namespace testing;
 #include "lockscreen/LockScreenSettings.h"
 #include "lockscreen/ScreenSaverDBusManager.h"
 #include "unity-shared/DashStyle.h"
+#include "unity-shared/InputMonitor.h"
 #include "unity-shared/PanelStyle.h"
 #include "unity-shared/UScreen.h"
 #include "mock_key_grabber.h"
@@ -55,7 +56,7 @@ const unsigned TICK_DURATION =  10 * 1000;
 struct MockShield : BaseShield
 {
   MockShield()
-    : BaseShield(nullptr, nullptr, nullptr, nux::ObjectPtr<AbstractUserPromptView>(), 0, false)
+    : BaseShield(nullptr, nullptr, nux::ObjectPtr<AbstractUserPromptView>(), 0, false)
   {}
 
   MOCK_CONST_METHOD0(IsIndicatorOpen, bool());
@@ -67,7 +68,7 @@ struct MockShield : BaseShield
 struct ShieldFactoryMock : ShieldFactoryInterface
 {
   nux::ObjectPtr<BaseShield> CreateShield(session::Manager::Ptr const&,
-                                          indicator::Indicators::Ptr const&,
+                                          menu::Manager::Ptr const&,
                                           Accelerators::Ptr const&,
                                           nux::ObjectPtr<AbstractUserPromptView> const&,
                                           int, bool) override
@@ -106,6 +107,7 @@ struct TestLockScreenController : Test
   nux::animation::AnimationController animation_controller;
 
   MockUScreen uscreen;
+  unity::input::Monitor im;
   unity::dash::Style dash_style;
   unity::panel::Style panel_style;
   unity::lockscreen::Settings lockscreen_settings;
@@ -181,7 +183,7 @@ TEST_F(TestLockScreenController, SwitchToMultiMonitor)
   session_manager->lock_requested.emit();
 
   Utils::WaitUntilMSec([this]{ return controller.shields_.size() == 1; });
-  ASSERT_EQ(1, controller.shields_.size());
+  ASSERT_EQ(1u, controller.shields_.size());
 
   Utils::WaitUntilMSec([this]{ return uscreen.GetMonitors().at(0) == controller.shields_.at(0)->GetGeometry(); });
   EXPECT_EQ(uscreen.GetMonitors().at(0), controller.shields_.at(0)->GetGeometry());
@@ -211,7 +213,7 @@ TEST_F(TestLockScreenController, SwitchToSingleMonitor)
 
   uscreen.Reset(/* emit_change */ true);
 
-  ASSERT_EQ(1, controller.shields_.size());
+  ASSERT_EQ(1u, controller.shields_.size());
   EXPECT_EQ(uscreen.GetMonitors().at(0), controller.shields_.at(0)->GetGeometry());
 }
 
@@ -220,7 +222,7 @@ TEST_F(TestLockScreenController, UnlockScreenOnSingleMonitor)
   session_manager->lock_requested.emit();
 
   Utils::WaitUntilMSec([this]{ return controller.shields_.size() == 1; });
-  ASSERT_EQ(1, controller.shields_.size());
+  ASSERT_EQ(1u, controller.shields_.size());
 
   session_manager->unlock_requested.emit();
   tick_source.tick(ANIMATION_DURATION);
@@ -248,14 +250,14 @@ TEST_F(TestLockScreenController, ShieldHasGrabAfterBlank)
   // Lock...
   session_manager->lock_requested.emit();
   Utils::WaitUntilMSec([this]{ return controller.shields_.size() == 1; });
-  ASSERT_EQ(1, controller.shields_.size());
+  ASSERT_EQ(1u, controller.shields_.size());
 
   // ...and let the screen blank.
   session_manager->presence_status_changed.emit(true);
   tick_source.tick(BLANK_ANIMATION_DURATION);
 
   ASSERT_TRUE(controller.blank_window_->GetOpacity() == 1.0);
-  ASSERT_TRUE(controller.blank_window_->OwnsPointerGrab());
+  ASSERT_FALSE(controller.blank_window_->OwnsPointerGrab());
 
   // Wake the screen
   dbus_manager->simulate_activity.emit();

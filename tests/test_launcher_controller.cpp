@@ -25,6 +25,7 @@
 #include "ExpoLauncherIcon.h"
 #include "DesktopLauncherIcon.h"
 #include "DesktopUtilities.h"
+#include "InputMonitor.h"
 #include "MockableBaseWindow.h"
 #include "MockLauncherIcon.h"
 #include "BFBLauncherIcon.h"
@@ -270,6 +271,7 @@ protected:
       for (auto const& icon : icons)
         model->RemoveIcon(icon);
 
+
       ASSERT_EQ(model->Size(), 0);
     }
 
@@ -286,6 +288,7 @@ protected:
   std::shared_ptr<helper::CaptureLogOutput> logger_output_;
   MockUScreen uscreen;
   panel::Style panel_style;
+  input::Monitor im_;
   MockFavoriteStore favorite_store;
   MockXdndManager::Ptr xdnd_manager_;
   ui::EdgeBarrierController::Ptr edge_barriers_;
@@ -297,16 +300,16 @@ TEST_F(TestLauncherController, Construction)
 {
   EXPECT_NE(lc.options(), nullptr);
   EXPECT_TRUE(lc.multiple_launchers());
-  ASSERT_EQ(lc.launchers().size(), 1);
+  ASSERT_EQ(lc.launchers().size(), 1u);
   EXPECT_EQ(lc.launcher().monitor(), 0);
   ASSERT_EQ(lc.Impl()->parent_, &lc);
   ASSERT_NE(lc.Impl()->model_, nullptr);
   EXPECT_EQ(lc.Impl()->expo_icon_->GetIconType(), AbstractLauncherIcon::IconType::EXPO);
   EXPECT_EQ(lc.Impl()->desktop_icon_->GetIconType(), AbstractLauncherIcon::IconType::DESKTOP);
   EXPECT_GE(lc.Impl()->sort_priority_, AbstractLauncherIcon::DefaultPriority(AbstractLauncherIcon::IconType::APPLICATION));
-  EXPECT_EQ(lc.Impl()->model_->GetSublist<BFBLauncherIcon>().size(), 1);
-  EXPECT_EQ(lc.Impl()->model_->GetSublist<HudLauncherIcon>().size(), 1);
-  EXPECT_EQ(lc.Impl()->model_->GetSublist<TrashLauncherIcon>().size(), 1);
+  EXPECT_EQ(lc.Impl()->model_->GetSublist<BFBLauncherIcon>().size(), 1u);
+  EXPECT_EQ(lc.Impl()->model_->GetSublist<HudLauncherIcon>().size(), 1u);
+  EXPECT_EQ(lc.Impl()->model_->GetSublist<TrashLauncherIcon>().size(), 1u);
   EXPECT_FALSE(lc.Impl()->launcher_open);
   EXPECT_FALSE(lc.Impl()->launcher_keynav);
   EXPECT_FALSE(lc.Impl()->launcher_grabbed);
@@ -353,7 +356,7 @@ TEST_F(TestLauncherController, MultimonitorSingleLauncher)
   for (unsigned i = 0; i < monitors::MAX; ++i)
   {
     uscreen.SetPrimary(i);
-    ASSERT_EQ(lc.launchers().size(), 1);
+    ASSERT_EQ(lc.launchers().size(), 1u);
     EXPECT_EQ(lc.launcher().monitor(), i);
   }
 }
@@ -364,7 +367,7 @@ TEST_F(TestLauncherController, MirroredMultimonitorSingleLauncherOnExternalMonit
   lc.multiple_launchers = false;
   uscreen.SetPrimary(1);
 
-  ASSERT_EQ(lc.launchers().size(), 1);
+  ASSERT_EQ(lc.launchers().size(), 1u);
   ASSERT_EQ(lc.launcher().monitor(), 0);
 }
 
@@ -373,7 +376,7 @@ TEST_F(TestLauncherController, MultimonitorSwitchToMultipleLaunchers)
   lc.multiple_launchers = false;
   uscreen.SetupFakeMultiMonitor();
 
-  ASSERT_EQ(lc.launchers().size(), 1);
+  ASSERT_EQ(lc.launchers().size(), 1u);
 
   lc.multiple_launchers = true;
   EXPECT_EQ(lc.launchers().size(), monitors::MAX);
@@ -388,7 +391,7 @@ TEST_F(TestLauncherController, MultimonitorSwitchToSingleLauncher)
   ASSERT_EQ(lc.launchers().size(), monitors::MAX);
 
   lc.multiple_launchers = false;
-  EXPECT_EQ(lc.launchers().size(), 1);
+  EXPECT_EQ(lc.launchers().size(), 1u);
   EXPECT_EQ(lc.launcher().monitor(), primary);
 }
 
@@ -398,7 +401,7 @@ TEST_F(TestLauncherController, MultimonitorSwitchToSingleMonitor)
   ASSERT_EQ(lc.launchers().size(), monitors::MAX);
 
   uscreen.Reset();
-  EXPECT_EQ(lc.launchers().size(), 1);
+  EXPECT_EQ(lc.launchers().size(), 1u);
   EXPECT_EQ(lc.launcher().monitor(), 0);
 }
 
@@ -417,7 +420,7 @@ TEST_F(TestLauncherController, MultimonitorRemoveMiddleMonitor)
 
 TEST_F(TestLauncherController, SingleMonitorSwitchToMultimonitor)
 {
-  ASSERT_EQ(lc.launchers().size(), 1);
+  ASSERT_EQ(lc.launchers().size(), 1u);
 
   uscreen.SetupFakeMultiMonitor();
 
@@ -1716,7 +1719,7 @@ TEST_F(TestLauncherController, UpdateNumWorkspacesEnable)
   EXPECT_TRUE(lc.Impl()->expo_icon_->IsVisible());
 }
 
-TEST_F(TestLauncherController, UpdateSelectionChanged)
+TEST_F(TestLauncherController, UNSTABLE_TEST(UpdateSelectionChanged))
 {
   UBusManager manager;
   std::string last_selection_change;

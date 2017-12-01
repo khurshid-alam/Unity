@@ -21,8 +21,8 @@
 #define UNITY_LOCKSCREEN_BASE_SHIELD_H
 
 #include <NuxCore/Property.h>
+#include "UnityCore/ConnectionManager.h"
 #include "UnityCore/SessionManager.h"
-#include "UnityCore/Indicators.h"
 #include "UnityCore/GLibSource.h"
 #include "unity-shared/MockableBaseWindow.h"
 
@@ -39,8 +39,8 @@ class CofView;
 class BaseShield : public MockableBaseWindow
 {
 public:
-  BaseShield(session::Manager::Ptr const&, indicator::Indicators::Ptr const&,
-             Accelerators::Ptr const&, nux::ObjectPtr<AbstractUserPromptView> const&,
+  BaseShield(session::Manager::Ptr const&, Accelerators::Ptr const&,
+             nux::ObjectPtr<AbstractUserPromptView> const&,
              int monitor_num, bool is_primary);
 
   nux::Property<bool> primary;
@@ -54,14 +54,13 @@ public:
 
   sigc::signal<void> grabbed;
   sigc::signal<void> grab_failed;
-  sigc::signal<void, int, int> grab_motion;
-  sigc::signal<void, unsigned long, unsigned long> grab_key;
 
 protected:
   virtual bool AcceptKeyNavFocus() { return false; }
   virtual void ShowPrimaryView() = 0;
   virtual void ShowSecondaryView();
 
+  nux::Area* FindKeyFocusArea(unsigned int, unsigned long, unsigned long) override;
   nux::Area* FindAreaUnderMouse(nux::Point const& mouse, nux::NuxEventType event_type) override;
 
   void GrabScreen(bool cancel_on_failure);
@@ -69,7 +68,6 @@ protected:
   void UpdateScale();
 
   session::Manager::Ptr session_manager_;
-  indicator::Indicators::Ptr indicators_;
   Accelerators::Ptr accelerators_;
   nux::ObjectPtr<AbstractUserPromptView> prompt_view_;
   std::shared_ptr<BackgroundSettings> bg_settings_;

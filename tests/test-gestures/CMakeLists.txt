@@ -1,4 +1,4 @@
-if (GTEST_ROOT_DIR)
+if (GMOCK_SOURCE_DIR)
   set(UNITY_SRC ${CMAKE_SOURCE_DIR}/plugins/unityshell/src)
 
   add_custom_command(OUTPUT CompoundGestureRecognizer.cpp
@@ -75,5 +75,7 @@ if (GTEST_ROOT_DIR)
   add_test(UnityGTestGestures test-gestures)
   add_dependencies(test-gestures gtest unity-core-${UNITY_API_VERSION})
 
-  add_custom_target (check-gestures COMMAND ./test-gestures DEPENDS test-gestures)
-endif (GTEST_ROOT_DIR)
+  add_custom_target (check-gestures COMMAND
+                     ./test-gestures --gtest_output=xml:${CMAKE_CURRENT_BINARY_DIR}/../test-gestures.xml
+                     DEPENDS test-gestures)
+endif (GMOCK_SOURCE_DIR)

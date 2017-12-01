@@ -6,6 +6,7 @@
 DEB_HOST_ARCH := $(shell dpkg-architecture -qDEB_HOST_ARCH)
 DEB_HOST_GNU_TYPE := $(shell dpkg-architecture -qDEB_HOST_GNU_TYPE)
 gles2_architectures := armel armhf
+disable_tests_archs := powerpc
 
 DEB_VERSION := $(shell dpkg-parsechangelog | egrep '^Version:' | cut -f 2 -d ' ')
 
@@ -53,7 +54,9 @@ override_dh_shlibdeps:
 
 override_dh_auto_test:
 ifeq (,$(filter nocheck,$(DEB_BUILD_OPTIONS)))
+ifneq ($(DEB_HOST_ARCH),$(findstring $(DEB_HOST_ARCH), $(disable_tests_archs)))
 	make -C obj-$(DEB_HOST_GNU_TYPE) check-headless
+endif
 endif
 
 %:

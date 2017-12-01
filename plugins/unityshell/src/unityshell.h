@@ -56,6 +56,7 @@
 #include "DashStyle.h"
 #include "EdgeBarrierController.h"
 #include "FavoriteStoreGSettings.h"
+#include "InputMonitor.h"
 #include "ShortcutController.h"
 #include "LauncherController.h"
 #include "LockScreenController.h"
@@ -75,6 +76,7 @@
 #include "UnityShowdesktopHandler.h"
 #include "ThumbnailGenerator.h"
 #include "MenuManager.h"
+#include "UnityCore/SessionManager.h"
 
 #include "compizminimizedwindowhandler.h"
 #include "BGHash.h"
@@ -161,6 +163,7 @@ protected:
   bool initPluginForScreen(CompPlugin* p) override;
 
   void outputChangeNotify() override;
+  void averageColorChangeNotify(const unsigned short *color) override;
 
   CompAction::Vector& getActions() override;
 
@@ -179,7 +182,7 @@ private:
   void nuxEpilogue();
 
   /* nux draw wrapper */
-  void paintDisplay();
+  void paintOutput();
   void paintPanelShadow(CompRegion const& clip);
   void setPanelShadowMatrix(const GLMatrix& matrix);
   void updateBlurDamage();
@@ -230,6 +233,7 @@ private:
   void OnScreenLocked();
   void OnScreenUnlocked();
   void SaveLockStamp(bool);
+  std::string GetLockStampFile() const;
 
   bool DoesPointIntersectUnityGeos(nux::Point const& pt);
 
@@ -279,7 +283,7 @@ private:
 
   bool SaveInputThenFocus(const guint xid);
 
-  void OnDecorationStyleChanged();
+  void UpdateDecorationStyle();
 
   void InitGesturesSupport();
   void UpdateGesturesSupport();
@@ -317,6 +321,7 @@ private:
   internal::FavoriteStoreGSettings favorite_store_;
   ThumbnailGenerator thumbnail_generator_;
   lockscreen::Settings lockscreen_settings_;
+  input::Monitor input_monitor_;
 
   /* The window thread should be the last thing removed, as c++ does it in reverse order */
   std::unique_ptr<nux::WindowThread> wt;
@@ -341,6 +346,8 @@ private:
   debug::DebugDBusInterface debugger_;
   std::unique_ptr<BGHash>   bghash_;
   spread::Widgets::Ptr      spread_widgets_;
+
+  session::Manager::Ptr session_;
 
   /* Subscription for gestures that manipulate Unity launcher */
   std::unique_ptr<nux::GesturesSubscription> gestures_sub_launcher_;

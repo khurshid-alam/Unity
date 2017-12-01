@@ -37,7 +37,7 @@ KylinShield::KylinShield(session::Manager::Ptr const& session_manager,
                Accelerators::Ptr const& accelerators,
                nux::ObjectPtr<AbstractUserPromptView> const& prompt_view,
                int monitor_num, bool is_primary)
-  : BaseShield(session_manager, nullptr, accelerators, prompt_view, monitor_num, is_primary)
+  : BaseShield(session_manager, accelerators, prompt_view, monitor_num, is_primary)
 {
   is_primary ? ShowPrimaryView() : ShowSecondaryView();
   EnableInputWindow(true);
@@ -75,24 +75,6 @@ void KylinShield::ShowPrimaryView()
   main_layout->AddSpace(0, 10);
   main_layout->AddLayout(prompt_layout_.GetPointer(), 0, nux::MINOR_POSITION_CENTER, nux::MINOR_SIZE_FIX);
   main_layout->AddSpace(0, 10);
-}
-
-nux::Area* KylinShield::FindKeyFocusArea(unsigned etype, unsigned long keysym, unsigned long modifiers)
-{
-  if (primary)
-  {
-    grab_key.emit(modifiers, keysym);
-
-    if (prompt_view_)
-    {
-      auto* focus_view = prompt_view_->focus_view();
-
-      if (focus_view && focus_view->GetInputEventSensitivity())
-        return focus_view;
-    }
-  }
-
-  return nullptr;
 }
 
 }
