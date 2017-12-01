@@ -64,8 +64,6 @@ unity (7.4.0+16.04.20160906-0ubuntu2) UNRELEASED; urgency=medium
     scaling (LP: #1666359)
   * UnityWindow: safely check validity of UnityWindow from scaled one
     (LP: #1659847)
-  * Dash: fix the neko regression we have since a couple of cycles (LP:
-    #1680927)
   * Panel: ensure the menu-manager tracker is updated to match monitor
     (LP: #1671432)
 

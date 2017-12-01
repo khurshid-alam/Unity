@@ -90,9 +90,8 @@ namespace dash
 
 NUX_IMPLEMENT_OBJECT_TYPE(ResultRendererTile);
 
-ResultRendererTile::ResultRendererTile(NUX_FILE_LINE_DECL, bool neko_mode)
+ResultRendererTile::ResultRendererTile(NUX_FILE_LINE_DECL)
   : ResultRenderer(NUX_FILE_LINE_PARAM)
-  , neko_mode_(neko_mode)
 {
   UpdateWidthHeight();
   scale.changed.connect([this] (double) { UpdateWidthHeight(); });
@@ -272,20 +271,7 @@ void ResultRendererTile::LoadIcon(Result const& row)
   int tile_gsize  = style.GetTileGIconSize().CP(scale);
 
   std::string const& icon_hint = row.icon_hint;
-  std::string icon_name = !icon_hint.empty() ? icon_hint : DEFAULT_GICON;
-
-  if (neko_mode_)
-  {
-    const std::array<const gchar*, 2> pool = {
-      "aHR0cDovL3BsYWNla2l0dGVuLmNvbS9nLyVpLyVpLw==",
-      "aHR0cDovL3BsYWNla2l0dGVuLmNvbS8laS8laS8=",
-    };
-    gsize tmp0;
-    int tmp1 = tile_size - (rand() % RawPixel(16).CP(scale));
-    int tmp2 = tile_size - (rand() % RawPixel(16).CP(scale));
-    glib::String tmp3((gchar*)g_base64_decode(pool[rand() % pool.size()], &tmp0));
-    icon_name = glib::String(g_strdup_printf(tmp3, tmp1, tmp2)).Str();
-  }
+  std::string const& icon_name = !icon_hint.empty() ? icon_hint : DEFAULT_GICON;
 
   glib::Object<GIcon> icon(g_icon_new_for_string(icon_name.c_str(), nullptr));
   TextureContainer* container = row.renderer<TextureContainer*>();
