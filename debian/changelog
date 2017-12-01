@@ -1,4 +1,4 @@
-unity (7.4.5+16.04) UNRELEASED; urgency=medium
+unity (7.4.5+16.04.20171201.3) xenial; urgency=medium
 
   [ Marco Trevisan (Treviño) ]
   * InputMonitor: add an unity class that monitors XInput2 events and
@@ -74,7 +74,7 @@ unity (7.4.5+16.04) UNRELEASED; urgency=medium
   [ Nick Dedekind ]
   * Fixed tooltip scaling issues. (LP: #1673950)
 
- -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Tue, 04 Jul 2017 18:12:47 +0200
+ -- Marco Trevisan (Treviño) <mail@3v1n0.net>  Fri, 01 Dec 2017 18:46:01 +0000
 
 unity (7.4.0+16.04.20160906-0ubuntu1) xenial; urgency=medium
 
