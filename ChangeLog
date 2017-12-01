@@ -1,3 +1,666 @@
+2017-11-16  Marco Trevisan (Treviño)  <mail@3v1n0.net>
+
+	tools: add migration script to set the default values for unity-lowgfx profile
+	
+	Compiz migration scripts are tricky and non always functional, this is safer
+	and known to work.
+
+2017-10-10  Andrea Azzarone  <azzaronea@gmail.com>
+
+	Avoid to show multiple "Authentication Failure" messages.
+
+2017-09-25  Andrea Azzarone  <azzaronea@gmail.com>
+
+	Wait until the color buffer is cleared before suspending. 
+
+2017-09-25  Andrea Azzarone  <azzaronea@gmail.com>
+
+	Refactor the way UserAuthenticator is created and passed around. Handle failures to create new threads and fallback to a "Switch to greeter..." button in case of failure. 
+
+2017-09-25  Marco Trevisan (Treviño)  <mail@3v1n0.net>
+
+	Tests: split unit tests in single binaries, enable unstable tests
+	
+	Use CMake foo, for getting the best for running tests in single mode
+	and generating smart targets for them
+
+2016-11-30  Marco Trevisan (Treviño)  <mail@3v1n0.net>
+
+	CMakeLists.txt: add support to compile with GTest 1.8 
+
+2017-07-21  Marco Trevisan (Treviño)  <mail@3v1n0.net>
+
+	PanelController: ensure we disconnect from signals on destruction
+	
+	It's just about using the magic of deriving from sigc::trackable.
+	Since UScreen might be late in signaling screen changes it could fail
+
+2017-07-21  Marco Trevisan (Treviño)  <mail@3v1n0.net>
+
+	compiz-profile-selector: use initctl properly (it won't pull env var from current config)
+
+2017-07-18  Marco Trevisan (Treviño)  <mail@3v1n0.net>
+
+	unity.cmake: avoid setting not existing profiles when gfx tests fail
+
+2017-07-18  Marco Trevisan (Treviño)  <mail@3v1n0.net>
+
+	compiz-profile-selector: use ligther syntax for updating env variables
+	
+	And fixes badly set variables in systemd too
+
+2017-07-17  Marco Trevisan (Treviño)  <mail@3v1n0.net>
+
+	tests: add org.compiz 'current-profile' to external gsettings
+
+2017-07-17  Marco Trevisan (Treviño)  <mail@3v1n0.net>
+
+	Launcher: disable or reduce most icon effects on lowgfx 
+
+2017-07-17  Marco Trevisan (Treviño)  <mail@3v1n0.net>
+
+	UnitySettings: listen to compiz profile status in order to set low_gfx value
+	
+	Instead of changing this value back and forth multiple times, just wait
+	this to be really changed in compiz, and update our internal variable
+	accordingly.
+	Also take care of the gsettings unity's lowgfx value only if the user has
+	set it.
+	
+	This fixes an infinite loop when starting compiz in a lowgfx environment.
+
+2017-07-17  Marco Trevisan (Treviño)  <mail@3v1n0.net>
+
+	UnitySettings: use glib::Signal blocking for ignoring setting changes
+
+2017-07-17  Marco Trevisan (Treviño)  <mail@3v1n0.net>
+
+	GLibSignal: allow to block, unblock signals
+	
+	Added support also to SignalManager, changed a bit the interface
+
+2017-07-07  Andrea Azzarone  <azzaronea@gmail.com>
+
+	Lockscreen: always draw the background-color in the lockscreen
+	
+	This is to avoid showing a transparent background if the background file is missing. 
+
+2017-07-07  Marco Trevisan (Treviño)  <mail@3v1n0.net>
+
+	compiz-profile-selector: don't try to update systemd in upstart session
+
+2017-07-03  Marco Trevisan (Treviño)  <mail@3v1n0.net>
+
+	BGHash, UnityScreen: get desktop averageColor from compiz
+	
+	compiz now supports getting this value, let's use it instead of
+	doing this again here.
+
+2017-06-09  Andrea Azzarone  <azzaronea@gmail.com>
+
+	Use g_mkdir_with_parents instead of mkdir.
+
+2017-04-25  Marco Trevisan (Treviño)  <mail@3v1n0.net>
+
+	compiz-profile-setter: tool to update the current profile and use in systemd and Unity settings
+	
+	Added a compiz-profile-setter tool that allows to change compiz profile, so we use
+	this to set the right profile when starting unity and when the gsettings key has changed.
+	
+	So we can just toggle lowgfx profile on the fly by just doing
+	gsettings set com.canonical.Unity lowgfx true|false 
+
+2017-04-25  Eleni Maria Stea  <elenimaria.stea@canonical.com>
+
+	removes lowgfx option from ccsm, reads the "lowgfx" gsetting (lp:~hikiko/unity-control-center/unity-control-center.lowgfx) 
+
+2017-07-05  Marco Trevisan (Treviño)  <mail@3v1n0.net>
+
+	Unity: Move scripts to tools, using cmake to generate proper paths
+
+2016-09-01  Marco Trevisan (Treviño)  <mail@3v1n0.net>
+
+	CMake: move data and setting files in proper folder, define shared libdir variables
+
+2017-04-25  Nick Dedekind  <nick.dedekind@canonical.com>
+
+	Fixed tooltip scaling issues. 
+
+2017-04-25  Marco Trevisan (Treviño)  <mail@3v1n0.net>
+
+	Panel: ensure the menu-manager tracker is updated to match monitor
+	
+	Also always use an unique name for panel depending on monitor
+
+2017-03-01  Marco Trevisan (Treviño)  <mail@3v1n0.net>
+
+	InputMonitor: don't try to deference an invalid Nux display 
+
+2017-03-01  Marco Trevisan (Treviño)  <mail@3v1n0.net>
+
+	UnityWindow: safely check validity of UnityWindow from scaled one 
+
+2017-02-22  Marco Trevisan (Treviño)  <mail@3v1n0.net>
+
+	BackgroundSettings: use gnome-bg to generate textures with proper scaling
+	
+	When using non-user background, we ensure that the texture size matches
+	the screen size, and also we now generate the background using an high
+	quality pixmap, instead of stretching a non-scaled one. 
+
+2017-01-25  Marco Trevisan (Treviño)  <mail@3v1n0.net>
+
+	GnomeSessionManager: add gcancellable to instance and use it for calls with temporary proxies
+	
+	This fixes various crashes when the session manager is destroyed while a temporary proxy
+	call is still in progress, and the callback is called afterwards.
+
+2017-01-09  Andrea Azzarone  <azzaronea@gmail.com>
+
+	Keep the screen locked if rebooting with autologin. 
+
+2017-01-09  Andrea Azzarone  <azzaronea@gmail.com>
+
+	Round gtk scaling factor to closest integer. 
+
+2017-01-09  Eleni Maria Stea  <elenimaria.stea@canonical.com>
+
+	shouldn't create blur rectangles when there's no blur, skips the blur rects processing in low gfx.
+
+2016-11-30  Kai-Heng Feng  <kai.heng.feng@canonical.com>
+
+	UnitySettings: If scale-factor is not set, find and set right scale for HiDPI displays.
+
+2016-11-30  Marco Trevisan (Treviño)  <mail@3v1n0.net>
+
+	UnityScreen: toggle gestures recognition on lock 
+
+2016-11-11  Marco Trevisan (Treviño)  <mail@3v1n0.net>
+
+	LauncherOptions: use track_obj to manage option changes 
+
+2016-11-11  Marco Trevisan (Treviño)  <mail@3v1n0.net>
+
+	LockScreenController: use input monitor to get the events to switch monitor
+	
+	In this way we can safely switch the monitor also on button click (after closing a menu)
+	or when moving over the panel (that wasn't properly handled before). 
+
+2016-11-11  Marco Trevisan (Treviño)  <mail@3v1n0.net>
+
+	LockScreenController: use InputMonitor to get all the events and hide the Blank Window
+	
+	When the blank window is shown now we use the XI2 events to figure out if we can hide it
+	in this way it will be possible to show the screensaver when something is grabbing the 
+	screen and we don't need to grab the screen anymore to get the events. 
+
+2016-11-07  Andrea Azzarone  <azzaronea@gmail.com>
+
+	GnomeSession: Retrieve the session id using dbus if c2 is not set
+
+2016-11-07  Andrea Azzarone  <azzaronea@gmail.com>
+
+	Correctly position the force quit dialog when scaling is different than 1.0 
+
+2016-11-07  Andrea Azzarone  <azzaronea@gmail.com>
+
+	Properly handle the file manager copy dialog in FileManagerLauncherIcon and in StorageLauncherIcon. 
+
+2016-11-07  Marco Trevisan (Treviño)  <mail@3v1n0.net>
+
+	LockScreenController: ignore icon_paths_changed signal in menumanager for Lockscreen 
+
+2016-09-01  Marco Trevisan (Treviño)  <mail@3v1n0.net>
+
+	PanelService: don't allow to deactivate menus if they've been opened too shortly
+	
+	This could be caused by some random events while doing fast scrubbing.
+
+2016-09-01  Marco Trevisan (Treviño)  <mail@3v1n0.net>
+
+	PanelView: scale gradient refinement properly
+
+2016-09-01  Marco Trevisan (Treviño)  <mail@3v1n0.net>
+
+	MenuManager: add support for mouse trackers with triangle algorithm support
+	
+	It allows to register pointer trackers with menu entries selection by using the triangle
+	technique which prevents menus items from being opened on quick menu scrubbing
+	
+	Then use use menu::Manager pointer tracker for entries activation in PanelView, LockScreenPanel and DecorationsMenuLayout 
+
+2016-09-01  Marco Trevisan (Treviño)  <mail@3v1n0.net>
+
+	LockScreenPanel: use InputMonitor events instead of mouse polling for menu scrubbing
+
+2016-09-01  Marco Trevisan (Treviño)  <mail@3v1n0.net>
+
+	PanelView: use InputMonitor to track menu events
+
+2016-09-01  Marco Trevisan (Treviño)  <mail@3v1n0.net>
+
+	DecorationsMenuLayout: use input monitor for menu scrubbing 
+
+2016-09-01  Marco Trevisan (Treviño)  <mail@3v1n0.net>
+
+	EdgeBarrierController: use InputMonitor to get the barrier events instead of relying on its implementation
+	
+	Also disable the input barrier if we don't really need it
+
+2016-09-01  Marco Trevisan (Treviño)  <mail@3v1n0.net>
+
+	InputMonitor: add an unity class that monitors XInput2 events and converts them to XEvent
+	
+	Clients of this class can register event handlers, and when an interested event will hit
+	our event filter function (that is set only if we have handlers), then we notify them
+	with a standard XEvent struct, converted from the XIDeviceEvent cookie.
+	
+	The nice thing of this monitor is that it always reports events, despite the X grabs.
+
+2016-09-06  Bileto Bot  <ci-train-bot@canonical.com>
+
+	Releasing 7.4.0+16.04.20160906-0ubuntu1
+
+2016-09-06  Bileto Bot  <ci-train-bot@canonical.com>
+
+	* SwitcherView: always disable animations when in lowgfx mode (LP:
+	#1602784)
+	* When locked discard damages from windows below lockscreen. (LP:
+	#1605180)
+	* DecoratedWindow: display unmaximize button if the window is
+	vertically or horizontally maximized (LP: #1608480)
+	* Make sure the switcher detail view is properly scaled. Also scale
+	the xy_offset to make sure the switcher and launcher do not overlap.
+	(LP: #1605256)
+	* Close session dialog on first ESC. (LP: #1521116)
+	* Filter out scrolling envents for FilterExpanderLabel. (LP: #1604632)
+	* Disable menu discovery animation if MenusDiscoveryDuration is 0.
+	(LP: #942962)
+	* Redraw fake decorations on window resize. (LP: #940470)
+	* Use compiz::Window::serverNext instead of compiz::Window::next in
+	IsWindowObscured as the latter can be outdated just after
+	scale/spread terminates. (LP: #1614116)
+	* DecoratedWindow: avoid deferencing an invalid shadow texture ptr,
+	and split functions (LP: #1608464)
+	* DecoratedWindow: display unmaximize button if the window is
+	vertically or horizontally maximized (LP: #1608480)
+	* DecorationsForceQuitDialog: make CSS selectors work with gtk 3.20
+	* UserAuthenticatorPam: ensure pam_handle_ is null initialized and
+	don't proceed if not set (LP: #1611668)
+	* DecorationStyle: set css name for Gtk 3.20
+	* OverlayRenderer: properly decorate launcher/panel when the launcher
+	is at the bottom (LP: #1611694)
+	* OverlayRenderer: don't use rotated textures, just rotate them at
+	rendering time
+	* SpreadWidgets: add container for spread filter and new spread
+	decorations (LP: #1283314)
+	* WindowButton: properly partially unmaximize a window when
+	middle/left clicking in the restore button (LP: #1616136)
+
+2016-09-07  Marco Trevisan (Treviño)  <mail@3v1n0.net>
+
+	debian/changelog: no bug #1616031 is not sadly fixed here
+
+2016-08-19  Andrea Azzarone  <azzaronea@gmail.com> 
+
+	Use compiz::Window::serverNext instead of compiz::Window::next in IsWindowObscured as the latter can be outdated just after scale/spread terminates. 
+
+2016-09-01  Marco Trevisan (Treviño)  <mail@3v1n0.net>
+
+	WindowButton: properly partially unmaximize a window when middle/left clicking in the restore button 
+
+2016-09-01  Andrea Azzarone  <azzaronea@gmail.com>
+
+	Redraw fake decorations on window resize. 
+
+2016-09-01  Andrea Azzarone  <azzaronea@gmail.com>
+
+	Disable menu discovery animation if MenusDiscoveryDuration is 0. 
+
+2016-08-23  Marco Trevisan (Treviño)  <mail@3v1n0.net>
+
+	debian/changelog: add bug #1616031 as fixed too
+
+2016-08-17  Marco Trevisan (Treviño)  <mail@3v1n0.net> 
+
+	SpreadWidgets: add container for spread filter and new spread decorations
+	
+	Now when windows are spread, launcher and panel aren't "naked" anymore 
+
+2016-08-17  Marco Trevisan (Treviño)  <mail@3v1n0.net> 
+
+	OverlayRenderer: don't use rotated textures, just rotate them at rendering time
+	
+	So removing duplicated data, since we can do this at code level
+
+2016-08-17  Marco Trevisan (Treviño)  <mail@3v1n0.net> 
+
+	OverlayRenderer: properly decorate launcher/panel when the launcher is at the bottom 
+
+2016-08-17  Andrea Azzarone  <azzaronea@gmail.com> 
+
+	Filter out scrolling envents for FilterExpanderLabel. 
+
+2016-08-17  Marco Trevisan (Treviño)  <mail@3v1n0.net> 
+
+	DecorationStyle: set css name for Gtk 3.20
+
+2016-08-17  Marco Trevisan (Treviño)  <mail@3v1n0.net> 
+
+	UserAuthenticatorPam: ensure pam_handle_ is null initialized and don't proceed if not set 
+
+2016-08-17  Andrea Azzarone  <azzaronea@gmail.com> 
+
+	Close session dialog on first ESC. 
+
+2016-08-17  Andrea Azzarone  <azzaronea@gmail.com> 
+
+	Make sure the switcher detail view is properly scaled. Also scale the xy_offset to make sure the switcher and launcher do not overlap. 
+
+2016-08-06  Marco Trevisan (Treviño)  <mail@3v1n0.net> 
+
+	DecorationsForceQuitDialog: make CSS selectors work with gtk 3.20
+
+2016-08-06  Marco Trevisan (Treviño)  <mail@3v1n0.net>
+
+	DecoratedWindow: display unmaximize button if the window is vertically or horizontally maximized
+
+2016-08-06  Marco Trevisan (Treviño)  <mail@3v1n0.net> 
+
+	DecoratedWindow: avoid deferencing an invalid shadow texture ptr, and split functions 
+
+2016-07-27  Andrea Azzarone  <azzaronea@gmail.com> 
+
+	When locked discard damages from windows below lockscreen. 
+
+2016-07-14  Marco Trevisan (Treviño)  <mail@3v1n0.net> 
+
+	SwitcherView: always disable animations when in lowgfx mode 
+
+2016-08-01  Bileto Bot  <ci-train-bot@canonical.com>
+
+	Releasing 7.4.0+16.04.20160801.2-0ubuntu1
+
+2016-08-01  Bileto Bot  <ci-train-bot@canonical.com>
+
+	* FileManagerLauncherIcon: Don't trust the Quirk::VISIBLE in the ctor.
+	(LP: #1599133)
+	* [TrashLauncherIcon] Create GFileMonitor in an idle to avoid blocking
+	calls. (LP: #1602720)
+	* [LockSceen] Remove numlock warning. (LP: #1526322)
+	* Make sure initiate and terminate callbacks are not empty before
+	calling them. (LP: #1605012)
+	* Properly destroy close_button_ to properly disconnect lambda. (LP:
+	#1605010)
+	* Use the standard notification-device-eject in the "device eject"
+	notification. This allows us to scale it properly on high-dpi
+	setups. (LP: #1605231)
+	* Add tools to enforce unityshell plugin for the current profile and
+	add "move" and "resize" plugins as requirements. (LP: #1506023, LP:
+	#1605007, LP: #1604657)
+	* Unity script: use result from unity_support_test to check the right
+	COMPIZ_CONFIG_PROFILE to use (LP: #1602377)
+	* LockScreenAcceleratorController: ensure callbacks are valid before
+	calling them (LP: #1605012)
+	* DecoratedWindow: Added shadows for shaped windows (LP: 1608418)
+	* DecoratedWindow: Cleanup shadows for shaped windows, reduce
+	recomputation (LP: #1608418)
+	* UnityWindowView: don't try to deference close_button_ if its' null
+
+2016-08-01  Marco Trevisan (Treviño)  <mail@3v1n0.net>
+
+	DecoratedWindow: split shadow quads computation based on shaped window state
+	
+	And reset textures on change
+
+2016-08-01  Marco Trevisan (Treviño)  <mail@3v1n0.net>
+
+	CompizUtils: add add flag to decoration utils for shaped windows
+
+2016-08-01  Marco Trevisan (Treviño)  <mail@3v1n0.net>
+
+	DecoratedWindow: avoid deferencing an invalid shadow texture ptr, and split functions
+
+2016-08-01  Marco Trevisan (Treviño)  <mail@3v1n0.net>
+
+	UnityWindowView: don't try to deference close_button_ if its' null
+	
+	It could happen when manually triggering a signal
+
+2016-08-01  Marco Trevisan (Treviño)  <mail@3v1n0.net>
+
+	DecoratedWindow: Cleanup shadows for shaped windows, reduce recomputation
+
+2016-07-27  Eleni Maria Stea  <elenimaria.stea@canonical.com> 
+
+	DecoratedWindow: Added shadows for shaped windows
+
+2016-07-27  Marco Trevisan (Treviño)  <mail@3v1n0.net> 
+
+	LockScreenAcceleratorController: ensure callbacks are valid before calling them 
+
+2016-08-01  Marco Trevisan (Treviño)  <mail@3v1n0.net>
+
+	Add tools to enforce unityshell plugin for the current profile and add "move" and "resize" plugins as requirements.
+
+2016-07-27  Andrea Azzarone  <azzaronea@gmail.com> 
+
+	Use the standard notification-device-eject in the "device eject" notification. This allows us to scale it properly on high-dpi setups. 
+
+2016-07-27  Andrea Azzarone  <azzaronea@gmail.com> 
+
+	Properly destroy close_button_ to properly disconnect lambda. 
+
+2016-07-27  Andrea Azzarone  <azzaronea@gmail.com> 
+
+	Make sure initiate and terminate callbacks are not empty before calling them. 
+
+2016-07-27  Andrea Azzarone  <azzaronea@gmail.com> 
+
+	[LockSceen] Remove numlock warning. 
+
+2016-07-14  Marco Trevisan (Treviño)  <mail@3v1n0.net> 
+
+	Unity script: use result from unity_support_test to check the right COMPIZ_CONFIG_PROFILE to use 
+
+2016-07-14  Andrea Azzarone  <azzaronea@gmail.com> 
+
+	[TrashLauncherIcon] Create GFileMonitor in an idle to avoid blocking calls. 
+
+2016-07-14  Andrea Azzarone  <azzaronea@gmail.com> 
+
+	FileManagerLauncherIcon: Don't trust the Quirk::VISIBLE in the ctor.
+	
+	Make sure a window is valid/mapped before considering it a manager storage window. 
+
+2016-07-15  Bileto Bot  <ci-train-bot@canonical.com>
+
+	Releasing 7.4.0+16.04.20160715-0ubuntu1
+
+2016-07-15  Bileto Bot  <ci-train-bot@canonical.com>
+
+	* PanelView: Don't draw it if the geo doesn't intersect the monitor
+	geo (as in ezoom)
+	* speeds up the showdesktop plugin in lowgfx mode
+	* Add whitelist for auto-repated keys. (LP: #1586491)
+	* Fix scale window activation if in show desktop mode. (LP: #1582056)
+	* Order matters in the rendering. Draw launcher shadow after the
+	background in all cases. (LP: #1586374)
+	* Fallback to volume name if no other identifier is available. (LP:
+	#1103593)
+	* Do not trigger screensaver on session inactive. (LP: #1587507)
+	* Use SwitcherController::SetDetail instead of detail=... (LP:
+	#1587618)
+	* UnitySettings: Add an option to enable/disable pam account checking.
+	(LP: #1460649)
+	* Lockscreen: Make sure warning and errors are properly shown to the
+	user (LP: #1593696)
+	* Add missing header to fix compilation error with -Duse_pch=OFF.
+	* Filter out fullscreen window in show desktop mode. (LP: #1597706)
+	* Make sure file manager icon is not removed when unpinned. (LP:
+	#1578792)
+	* Properly calculate the intersection geometry in PanelView::Draw.
+	This is needed to properly call SyncGeometries and to avoid problems
+	such as lp:1595698. (LP: #1595698)
+	* UnitySettings: Add dconf keys for disabling multitouch gestures (LP:
+	#1589520)
+	* LockScreenAcceleratorController: use key::Grabber to handle allowed
+	bindings (LP: #1438754)
+	* LockScreenAcceleratorController: check if a setting key is available
+	instead of crashing
+	* ApplicationLauncherIcon: ensure quirks are properly set on icon
+	initialization
+	* Views: Toggle animators durations based on low-gfx setting (LP:
+	#1598770)
+	* unity7.conf: use different compiz profile based on
+	unity_support_test result (LP: #1598770)
+
+2016-07-05  Marco Trevisan (Treviño)  <mail@3v1n0.net> 
+
+	unity7.conf: use different compiz profile based on unity_support_test result 
+
+2016-07-05  Marco Trevisan (Treviño)  <mail@3v1n0.net> 
+
+	Views: Toggle animators durations based on low-gfx setting
+	
+	Disable animations based on low_gfx setting (now ported to nux::Property) 
+
+2016-07-05  Eleni Maria Stea  <elenimaria.stea@canonical.com> 
+
+	speeds up the showdesktop plugin in lowgfx mode
+
+2016-07-05  Marco Trevisan (Treviño)  <mail@3v1n0.net> 
+
+	ApplicationLauncherIcon: ensure quirks are properly set on icon initialization
+
+2016-07-05  Marco Trevisan (Treviño)  <mail@3v1n0.net> 
+
+	LockScreenAcceleratorController: check if a setting key is available instead of crashing
+
+2016-07-05  Andrea Azzarone  <azzaronea@gmail.com> 
+
+	Properly calculate the intersection geometry in PanelView::Draw. This is needed to properly call SyncGeometries and to avoid problems such as lp:1595698. 
+
+2016-07-05  Andrea Azzarone  <azzaronea@gmail.com> 
+
+	Make sure file manager icon is not removed when unpinned. 
+
+2016-06-30  Andrea Azzarone  <azzaronea@gmail.com>
+
+	Filter out fullscreen window in show desktop mode.
+
+2016-06-30  Andrea Azzarone  <azzaronea@gmail.com>
+
+	Add missing header to fix compilation error with -Duse_pch=OFF.
+
+2016-06-29  Marco Trevisan (Treviño)  <mail@3v1n0.net>
+
+	debian/changelog: fix author
+
+2016-06-28  Andrea Azzarone  <azzaronea@gmail.com> 
+
+	Lockscreen: Make sure warning and errors are properly shown to the user 
+
+2016-06-28  Andrea Azzarone  <azzaronea@gmail.com> 
+
+	UnitySettings: Add an option to enable/disable pam account checking. 
+
+2016-06-21  Marco Trevisan (Treviño)  <mail@3v1n0.net> 
+
+	LockScreenAcceleratorController: use key::Grabber to handle allowed bindings This makes U-S-D to handle key events, without having to add some extra custom code inside the lockscreen. It's all just about whitelisting the wanted values. 
+
+2016-06-06  Alberto Milone  <alberto.milone@canonical.com> 
+
+	UnitySettings: Add dconf keys for disabling multitouch gestures 
+
+2016-06-06  Andrea Azzarone  <azzaronea@gmail.com> 
+
+	Use SwitcherController::SetDetail instead of detail=... 
+
+2016-06-06  Andrea Azzarone  <azzaronea@gmail.com> 
+
+	Do not trigger screensaver on session inactive. 
+
+2016-06-02  Andrea Azzarone  <azzaronea@gmail.com> 
+
+	Fallback to volume name if no other identifier is available. 
+
+2016-06-02  Andrea Azzarone  <azzaronea@gmail.com> 
+
+	Order matters in the rendering. Draw launcher shadow after the background in all cases. 
+
+2016-06-02  Andrea Azzarone  <azzaronea@gmail.com> 
+
+	Fix scale window activation if in show desktop mode. 
+
+2016-06-02  Andrea Azzarone  <azzaronea@gmail.com> 
+
+	Add whitelist for auto-repated keys. 
+
+2016-05-25  Eleni Maria Stea  <elenimaria.stea@canonical.com>
+
+	PanelView: Don't draw it if the geo doesn't intersect the monitor geo (as in ezoom) added check to see if the panel geometry intersects the geometry of the monitor the panel belongs to. If there's no intersection there's no need to draw it (return). If there is intersection we should only draw the intersection area (clip the non visible parts).
+
+2016-05-26  CI Train Bot  <ci-train-bot@canonical.com>
+
+	Releasing 7.4.0+16.04.20160526.1-0ubuntu1
+
+2016-05-26  handsome_feng  <445865575@qq.com>
+
+	Releasing unity SRU1 for Xenial Fixes: #1525685, #1553165, #1562348, #1562847, #1570843, #1572241, #1573897, #1574689, #1575527, #1580211, #1580212
+
+2016-05-26  Marco Trevisan (Treviño)  <mail@3v1n0.net>
+
+	debian/changelog: set proper version manually
+
+2016-05-17  handsome_feng  <445865575@qq.com>
+
+	Change the x_offset of expo when launcher position changed. 
+
+2016-05-17  Marco Trevisan (Treviño)  <mail@3v1n0.net>
+
+	DashStyle: ensure LazyLoadTexture disconnects from signals on destruction 
+
+2016-05-17  Marco Trevisan (Treviño)  <mail@3v1n0.net>
+
+	SwitcherController: don't try to get a window from empty selections 
+
+2016-05-17  Marco Trevisan (Treviño)  <mail@3v1n0.net>
+
+	UnityScreen, UnityWindow: cleanup a little the code, and ensure overridden CompositeWindow functions get actually called There would be still a lot to do in this scenario, but still a start...F
+
+2016-05-17  Marco Trevisan (Treviño)  <mail@3v1n0.net>
+
+	SwitcherView: close the mouse-selected application on middle-click 
+
+2016-05-17  Andrea Azzarone  <azzaronea@gmail.com>
+
+	Do not reset the shortcut for icons that have their own shortcut. 
+
+2016-05-17  Andrea Azzarone  <azzaronea@gmail.com>
+
+	Fallback to background class in case no background is specified for title bars and top panel. 
+
+2016-05-17  Andrea Azzarone  <azzaronea@gmail.com>
+
+	Properly calculate array indexes to avoid crashes. 
+
+2016-05-17  Andrea Azzarone  <azzaronea@gmail.com>
+
+	GnomeKeyGrabber: do not activate an action if it's a repeated one. 
+
+2016-05-17  Andrea Azzarone  <azzaronea@gmail.com>
+
+	Update ExpoLauncherIcon in case the quicklist is used to switch vp. 
+
+2016-05-17  Andrea Azzarone  <azzaronea@gmail.com>
+
+	Properly remove SoftwareCenterLauncherIcon in case of failure. 
+
+2016-05-15  Marco Trevisan (Treviño)  <mail@3v1n0.net>
+
+	Releasing Unity 7.4.0
+
 2016-04-15  CI Train Bot  <ci-train-bot@canonical.com>
 
 	Releasing 7.4.0+16.04.20160415-0ubuntu1
