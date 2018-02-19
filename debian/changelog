@@ -1,3 +1,10 @@
+unity (7.4.5+16.04.20171201.3ubuntu1) UNRELEASED; urgency=medium
+
+  * Unity use track_obj to safely connect to UScreen and Settings
+    signals (LP: #1748330) (LP: #1748330)
+
+ -- Marco Trevisan (Treviño) <mail@3v1n0.net>  Mon, 19 Feb 2018 15:41:34 +0100
+
 unity (7.4.5+16.04.20171201.3) xenial; urgency=medium
 
   [ Marco Trevisan (Treviño) ]
