@@ -979,7 +979,7 @@ void UnityScreen::paintOutput()
         /* force the use of the core functions */
         uTrayWindow->gWindow->glDrawSetCurrentIndex (MAXSHORT);
         uTrayWindow->gWindow->glAddGeometrySetCurrentIndex ( MAXSHORT);
-        uTrayWindow->gWindow->glDraw (oTransform, attrib, infiniteRegion,
+        uTrayWindow->gWindow->glDraw (oTransform, attrib, CompRegion::infinite (),
                PAINT_WINDOW_TRANSFORMED_MASK |
                PAINT_WINDOW_BLEND_MASK |
                PAINT_WINDOW_ON_TRANSFORMED_SCREEN_MASK);
@@ -4194,13 +4194,13 @@ void UnityScreen::InitUnityComponents()
     }
   };
 
-  UScreen::GetDefault()->changed.connect([this, check_launchers_size] (int, std::vector<nux::Geometry> const&) {
+  UScreen::GetDefault()->changed.connect(sigc::track_obj([this, check_launchers_size] (int, std::vector<nux::Geometry> const&) {
     check_launchers_size();
-  });
+  }, *this));
 
-  Settings::Instance().launcher_position.changed.connect([this, check_launchers_size] (LauncherPosition const&) {
+  Settings::Instance().launcher_position.changed.connect(sigc::track_obj([this, check_launchers_size] (LauncherPosition const&) {
     check_launchers_size();
-  });
+  }, *this));
 
   check_launchers_size();
 
